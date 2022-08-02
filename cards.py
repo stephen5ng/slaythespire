@@ -24,6 +24,16 @@ class Deck:
 
     return None
 
+  def deal_multi(self, count):
+    ret = []
+    while count > 0:
+      card = self.deal()
+      if not card:
+        return ret
+      count -= 1
+      ret.append(card)
+    return ret
+
   def discard(self, cards):
     self.discards.extend(cards)
 
