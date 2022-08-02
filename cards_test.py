@@ -30,10 +30,31 @@ class TestDeck(unittest.TestCase):
         deck = cards.Deck([])
         deck.discard([cards.Card(attack=8)])
         self.assertEqual(8, deck.deal().attack)
-        
-    def test_multiple_cards(self):
-        deck = cards.Deck([cards.Card(attack=8)])
 
-        
+    def test_multiple_cards(self):
+        deck = cards.Deck([cards.Card(attack=8),
+                           cards.Card(attack=6)])
+
+        card0 = deck.deal()
+        card1 = deck.deal()
+        self.assertEqual(None, deck.deal())
+
+        self.assertEqual(8, card0.attack)
+        self.assertEqual(6, card1.attack)
+
+        deck.discard([card0, card1])
+
+        self.assertEqual(8, deck.deal().attack)
+
+    def test_shuffle(self):
+        deck = cards.Deck([cards.Card(attack=8),
+                           cards.Card(attack=6)], seed=2)
+
+        card0 = deck.deal()
+        card1 = deck.deal()
+
+        self.assertEqual(8, card0.attack)
+        self.assertEqual(6, card1.attack)
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,23 +1,26 @@
 import math
-import numpy as np
+import numpy
 
 class Card:
   def __init__(self, attack):
     self.attack = attack
 
 class Deck:
-  def __init__(self, cards):
+  def __init__(self, cards, seed=1):
     self.deck = cards
     self.discards = []
+    numpy.random.seed(seed=seed)
+    numpy.random.shuffle(self.deck)
 
   def deal(self):
     if not self.deck:
       if self.discards:
         self.deck = self.discards
+        numpy.random.shuffle(self.deck)
         self.discards = []
 
     if self.deck:
-      return self.deck.pop()
+      return self.deck.pop(0)
 
     return None
 
