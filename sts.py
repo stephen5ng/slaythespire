@@ -111,10 +111,13 @@ def get_frontloaded_damage(damage):
           damage[2]/4.0 + 
           damage[3]/8.0)
 
+def get_scaling_damage(damage):
+  return (damage[10] - damage[1]) / 10.0
+
 def main():
   cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
   deck = Deck(cards)
-  turns = 10
+  turns = 16
   trials = 1000
   cum_damage = []
   damage = []
@@ -151,6 +154,7 @@ def main():
   print(f"scatter_data: {scatter_data}, {size}")
   print(f"average: {average_damage}")
   print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
+  print(f"SCALING DAMAGE {get_scaling_damage(average_damage):.2f}")
   fig, ax = plt.subplots()
   ax.scatter('turns', 'damage', s=size, data = scatter_data)
 
