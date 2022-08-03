@@ -5,13 +5,20 @@ import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
 
-class CardArgs(namedtuple('CardArgs', "energy attack")):
-    def __new__(cls, energy, attack=0):
-        return super().__new__(cls, energy, attack)
+class CardArgs(namedtuple('CardArgs', "energy attack vulnerable")):
+    def __new__(cls, energy, 
+                attack=0,
+                vulnerable=0):
+        return super().__new__(cls, energy, 
+                                attack,
+                                vulnerable)
     def __getnewargs__(self):
-        return (self.energy, self.attack)
+        return (self.energy, 
+                self.attack,
+                self.vulnerable)
 
 class Card(CardArgs, Enum):
+  BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
   STRIKE = CardArgs(1, attack=6)
 
@@ -51,17 +58,24 @@ class Deck:
     return "\n".join([c.name for c in self.cards])
 
 def play_turn(deck):
+    vulnerable = 0
     hand = deck.deal_multi(5)
     damage = 0
-    played_cards = []
+    hand.sort(reverse=True, key=lambda c: c.energy)
+    energy = 3
     for card in hand:
+      if energy < card.energy:
+        break
       if card.attack:
-        damage += card.attack
-        played_cards.append(card)
-        if len(played_cards) >= 3:
-          break
+        damage += card.attack * (1.5 if vulnerable else 1.0)
+        energy -= card.energy
+      
+      if card.vulnerable:
+        vulnerable += 1
+      
     deck.discard(hand)
     print(f"damage: {damage}")
+    vulnerable -= 1
     return damage
 
 def play_game(deck, turns):

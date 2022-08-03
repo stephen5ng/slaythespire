@@ -20,6 +20,12 @@ class TestPlay(unittest.TestCase):
         damage = sts.play_turn(deck)
         self.assertEqual(18, damage)
 
+    def test_play_turn_vulnerable(self):
+        cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
+        deck = sts.Deck(cards)
+        damage = sts.play_turn(deck)
+        self.assertEqual(8 + 6*1.5, damage)
+
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = sts.Deck(cards)
