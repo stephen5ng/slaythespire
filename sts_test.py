@@ -1,4 +1,5 @@
 import unittest
+import logging
 from string import capwords
 
 import sts
@@ -32,8 +33,9 @@ class TestPlayer(unittest.TestCase):
         player = Player(Deck(cards))
         player.play_turn(self.monster)
         player.play_turn(self.monster)
+        player.play_turn(self.monster)
 
-        self.assertEqual([0, 8*3], self.monster.get_damage())
+        self.assertEqual([0, 8*3, 10*3], self.monster.get_damage())
 
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]

@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
 
+logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
+
 class CardArgs(namedtuple('CardArgs',
               'energy attack exhaustible strength_gain vulnerable')):
     def __new__(cls, energy, 
@@ -29,6 +31,12 @@ class Card(CardArgs, Enum):
   DEFEND = CardArgs(1)
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
+  
+  def __str__(self):
+    return self.name
+
+  def __repr__(self):
+    return self.name
 
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
 class Deck:
@@ -93,10 +101,15 @@ class Player:
   def __init__(self, deck: Deck) -> None:
     self.deck = deck
     self.strength = 0
+    self.strength_gain = 0
 
   def play_turn(self, monster: Monster):
+    played_cards = []
+
     monster.begin_turn()
 
+    self.strength += self.strength_gain    
+    
     hand = self.deck.deal_multi(5)
     # print(f"HAND: {hand}")
     hand.sort(reverse=True, key=lambda c: c.energy)
@@ -106,7 +119,8 @@ class Player:
         break
 
       if card.attack or card.strength_gain:
-        logging.info(f"playing card: {card}")
+        logging.debug(f"playing card: {card}")
+        played_cards.append(card)
         energy -= card.energy
 
         if card.attack:
@@ -116,19 +130,22 @@ class Player:
           monster.vulnerable(card.vulnerable)
 
         if card.strength_gain:
-          self.strength += card.strength_gain
+          self.strength_gain += card.strength_gain
 
         if card.exhaustible:
           hand.remove(card)
 
-    
     self.deck.discard(hand)    
-
+    dmg = monster.get_damage()
+    logging.info(f"Played: {played_cards}")
     monster.end_turn()
 
   def play_game(self, monster: Monster, turns: int):
     for turn in range(turns):
       self.play_turn(monster)
+    # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
+
+    logging.info(f"damage: {monster.get_damage()}")
 
 def get_frontloaded_damage(damage: list):
   return (damage[0] + 
@@ -163,13 +180,15 @@ def create_scatter_plot_data(plot_data):
  
   return scatter_data, size
 
+
 def main():
   turns = 16
-  trials = 1000
+  trials = 10
   cum_damage = []
   damage = []
+  IRONCLAD_DEMON = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.DEMON_FORM]
   for trial in range(trials):
-    player = Player(Deck(IRONCLAD_STARTER, seed=trial))
+    player = Player(Deck(IRONCLAD_DEMON, seed=trial))
     monster = Monster()
     player.play_game(monster, turns)
     damage.append(monster.get_damage())
