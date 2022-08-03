@@ -115,15 +115,14 @@ class Player:
 
     self.deck.discard(hand)    
 
-def play_turn(deck, monster):
-    player = Player(deck)
+def play_turn(player: Player, monster: Monster):
     monster.begin_turn()
     player.play_turn(monster)
     monster.end_turn()
 
-def play_game(deck, monster, turns):
+def play_game(player: Player, monster: Monster, turns: int):
   for turn in range(turns):
-    play_turn(deck, monster)
+    play_turn(player, monster)
 
 def get_frontloaded_damage(damage):
   return (damage[0] + 
@@ -140,9 +139,9 @@ def main():
   cum_damage = []
   damage = []
   for trial in range(trials):
-    deck = Deck(IRONCLAD_STARTER, seed=trial)
+    player = Player(Deck(IRONCLAD_STARTER, seed=trial))
     monster = Monster()
-    play_game(deck, monster, turns)
+    play_game(player, monster, turns)
     damage.append(monster.get_damage())
     cum_damage.append(numpy.cumsum(monster.get_damage()))
   plot_data = damage

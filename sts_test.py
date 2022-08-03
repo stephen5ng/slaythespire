@@ -2,7 +2,7 @@ import unittest
 from string import capwords
 
 import sts
-from sts import Card, Deck, Monster
+from sts import Card, Deck, Monster, Player
 
 class TestCards(unittest.TestCase):
     def test_card(self):
@@ -16,33 +16,33 @@ class TestPlay(unittest.TestCase):
     def test_play_turn(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        sts.play_turn(deck, self.monster)
+        sts.play_turn(Player(deck), self.monster)
 
         self.assertEqual([18], self.monster.get_damage())
         self.assertEqual(5, len(cards), msg='input cards was mutated')
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
-        deck = Deck(cards)
-        sts.play_turn(deck, self.monster)
+
+        sts.play_turn(Player(Deck(cards)), self.monster)
         self.assertEqual([8 + 6*1.5], self.monster.get_damage())
 
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]
         deck = Deck(cards)
-        sts.play_turn(deck, self.monster)
+        sts.play_turn(Player(deck), self.monster)
         self.assertNotIn(Card.DEMON_FORM, deck.discards)
 
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        deck = Deck(cards)
-        sts.play_game(deck, self.monster, 1)
+        sts.play_game(Player(Deck(cards)), self.monster, 1)
+
         self.assertEqual([18], self.monster.get_damage())
     
     def test_multi_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        deck = Deck(cards)
-        sts.play_game(deck, self.monster, 2)
+        sts.play_game(Player(Deck(cards)), self.monster, 2)
+
         self.assertEqual([18, 18], self.monster.get_damage())
 
 class TestMonster(unittest.TestCase):
