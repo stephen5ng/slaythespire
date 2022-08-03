@@ -4,34 +4,37 @@ import numpy
 import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
-# from scipy.optimize import curve_fit
 import numpy.polynomial.polynomial as poly
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 class CardArgs(namedtuple('CardArgs',
-              'energy attack exhaustible strength_gain vulnerable')):
+              'energy attack exhaustible strength_gain strength_gain_buff vulnerable')):
     def __new__(cls, energy, 
                 attack=0,
                 exhaustible=False,
                 strength_gain=0,
+                strength_gain_buff=0,
                 vulnerable=0):
         return super().__new__(cls, energy, 
                                 attack,
                                 exhaustible,
                                 strength_gain,
+                                strength_gain_buff,
                                 vulnerable)
     def __getnewargs__(self):
         return (self.energy, 
                 self.attack,
                 self.exhaustible,
                 self.strength_gain,
+                self.strength_gain_buff,
                 self.vulnerable)
 
 class Card(CardArgs, Enum):
   BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
-  DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain=2)
+  DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain_buff=2)
+  INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
   
   def __str__(self):
@@ -103,24 +106,24 @@ class Player:
   def __init__(self, deck: Deck) -> None:
     self.deck = deck
     self.strength = 0
-    self.strength_gain = 0
+    self.strength_gain_buff = 0
 
   def play_turn(self, monster: Monster):
     played_cards = []
 
     monster.begin_turn()
 
-    self.strength += self.strength_gain    
+    self.strength += self.strength_gain_buff    
     
     hand = self.deck.deal_multi(5)
-    # print(f"HAND: {hand}")
-    hand.sort(reverse=True, key=lambda c: c.energy)
+    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
+    logging.debug(f"HAND: {hand}")
     energy = 3
     for card in hand:
       if energy < card.energy:
         break
 
-      if card.attack or card.strength_gain:
+      if card.attack or card.strength_gain or card.strength_gain_buff:
         logging.debug(f"playing card: {card}")
         played_cards.append(card)
         energy -= card.energy
@@ -131,8 +134,11 @@ class Player:
         if card.vulnerable:
           monster.vulnerable(card.vulnerable)
 
+        if card.strength_gain_buff:
+          self.strength_gain_buff += card.strength_gain_buff
+
         if card.strength_gain:
-          self.strength_gain += card.strength_gain
+          self.strength += card.strength_gain
 
         if card.exhaustible:
           hand.remove(card)
@@ -193,7 +199,7 @@ def main():
   trials = 1000
   cum_damage = []
   damage = []
-  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.DEMON_FORM]
+  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.INFLAME]
   for trial in range(trials):
     player = Player(Deck(cards, seed=trial))
     monster = Monster()
