@@ -46,6 +46,13 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([8*2, 8*3, 8*3], self.monster.get_damage())
 
+    def test_play_turn_attack_multiplier(self):
+        cards = [Card.TWIN_STRIKE] + [Card.DEFEND] * 4
+        player = Player(Deck(cards))
+        player.play_turn(self.monster)
+
+        self.assertEqual([10], self.monster.get_damage())
+
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]
         deck = Deck(cards)

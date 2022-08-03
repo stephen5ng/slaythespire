@@ -9,15 +9,17 @@ import numpy.polynomial.polynomial as poly
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 class CardArgs(namedtuple('CardArgs',
-              'energy attack exhaustible strength_gain strength_gain_buff vulnerable')):
+              'energy attack attack_multiplier exhaustible strength_gain strength_gain_buff vulnerable')):
     def __new__(cls, energy, 
                 attack=0,
+                attack_multiplier=1,
                 exhaustible=False,
                 strength_gain=0,
                 strength_gain_buff=0,
                 vulnerable=0):
         return super().__new__(cls, energy, 
                                 attack,
+                                attack_multiplier,
                                 exhaustible,
                                 strength_gain,
                                 strength_gain_buff,
@@ -25,6 +27,7 @@ class CardArgs(namedtuple('CardArgs',
     def __getnewargs__(self):
         return (self.energy, 
                 self.attack,
+                self.attack_multiplier,
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_gain_buff,
@@ -36,6 +39,7 @@ class Card(CardArgs, Enum):
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain_buff=2)
   INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
+  TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
   
   def __str__(self):
     return self.name
@@ -129,7 +133,7 @@ class Player:
         energy -= card.energy
 
         if card.attack:
-          monster.defend(card.attack + self.strength)
+          monster.defend(card.attack_multiplier * (card.attack + self.strength))
       
         if card.vulnerable:
           monster.vulnerable(card.vulnerable)
