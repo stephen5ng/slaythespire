@@ -57,32 +57,55 @@ class Deck:
   def __str__(self):
     return "\n".join([c.name for c in self.cards])
 
-def play_turn(deck):
-    vulnerable = 0
+class Monster:
+  def __init__(self) -> None:
+    self._damage = []
+    self._turn = 0
+    self._vulnerable = 0
+
+  def begin_turn(self):
+    self._damage.append(0)
+  
+  def defend(self, attack):
+    self._damage[self._turn] += attack * (1.5 if self._vulnerable else 1.0)
+    print(f"MONSTER TAKING DAMAGE: {self._turn}, {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
+  
+  def vulnerable(self, turns):
+    self._vulnerable += turns
+    print(f"MONSTER TAKING VULNERABLE: {self._turn}: {turns} -> {self._vulnerable}")
+
+  def end_turn(self):
+    if self._vulnerable > 0:
+      self._vulnerable -= 1
+    self._turn += 1
+    
+  def get_damage(self):
+    return self._damage
+
+def play_turn(deck, monster):
+    monster.begin_turn()
     hand = deck.deal_multi(5)
-    damage = 0
     hand.sort(reverse=True, key=lambda c: c.energy)
     energy = 3
     for card in hand:
       if energy < card.energy:
         break
       if card.attack:
-        damage += card.attack * (1.5 if vulnerable else 1.0)
+        monster.defend(card.attack)
         energy -= card.energy
       
       if card.vulnerable:
-        vulnerable += 1
-      
+        monster.vulnerable(card.vulnerable)
+    
+    monster.end_turn()
     deck.discard(hand)
-    print(f"damage: {damage}")
-    vulnerable -= 1
-    return damage
 
-def play_game(deck, turns):
+def play_game(deck, monster, turns):
   damage = []
   cum_damage = 0
   for turn in range(turns):
-    cum_damage += play_turn(deck)
+    play_turn(deck, monster)
+    cum_damage += monster.get_damage()[turn]
     damage.append(cum_damage)
   return damage
 
@@ -126,12 +149,12 @@ def main():
 if __name__ == "__main__":
     main()
 
-class Monster:
-  def __init__(self):
-    self.hp = 100
+# class Monster:
+#   def __init__(self):
+#     self.hp = 100
   
-  def defend(self, attack):
-    self.hp -= attack
+#   def defend(self, attack):
+#     self.hp -= attack
 
 class Player:
   def __init__(self, deck) -> None:
