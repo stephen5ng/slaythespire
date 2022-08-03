@@ -4,6 +4,8 @@ import numpy
 import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
+# from scipy.optimize import curve_fit
+import numpy.polynomial.polynomial as poly
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
@@ -180,15 +182,20 @@ def create_scatter_plot_data(plot_data):
  
   return scatter_data, size
 
+# def objective(x, a, b):
+# 	return a * x + b
+def objective(x, a, b, c):
+  print(f"abc {x}, {a} {b} {c}")
+  return a * x + b*numpy.power(x, 2) + c
 
 def main():
-  turns = 16
-  trials = 10
+  turns = 40
+  trials = 1000
   cum_damage = []
   damage = []
-  IRONCLAD_DEMON = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.DEMON_FORM]
+  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.DEMON_FORM]
   for trial in range(trials):
-    player = Player(Deck(IRONCLAD_DEMON, seed=trial))
+    player = Player(Deck(cards, seed=trial))
     monster = Monster()
     player.play_game(monster, turns)
     damage.append(monster.get_damage())
@@ -198,12 +205,24 @@ def main():
   scatter_data, size = create_scatter_plot_data(damage)
  
   average_damage = numpy.average(damage, axis=0)
+  turns_after_first_deck = 2+int(len(cards) / 5)
+  x = list(range(turns))
+  x_after_first_deck = x[turns_after_first_deck:]
+  coefs = poly.polyfit(x_after_first_deck, average_damage[turns_after_first_deck:], 3)
+  ffit = poly.polyval(x_after_first_deck, coefs)
+
+  c = [f"{cc:.2f}" for cc in coefs[1:]]
+  print(f"coeffs: {c}")
   logging.debug(f"scatter_data: {scatter_data}, {size}")
   print(f"average: {average_damage}")
   print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
   print(f"SCALING DAMAGE {get_scaling_damage(average_damage):.2f}")
   fig, ax = plt.subplots()
-  ax.scatter('turns', 'damage', s=size, data = scatter_data)
+  plt.plot(x_after_first_deck, ffit, color='green')
+
+  ax.scatter(x, average_damage, s=4, color='red', marker="_")
+
+  ax.scatter('turns', 'damage', s=size, data=scatter_data)
 
   plt.show()
 
