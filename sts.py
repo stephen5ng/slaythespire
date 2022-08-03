@@ -75,7 +75,7 @@ class Monster:
   def defend(self, attack):
     self._damage[self._turn] += attack * (1.5 if self._vulnerable else 1.0)
     # print(f"{self._turn}: MONSTER TAKING DAMAGE: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
-  
+
   def vulnerable(self, turns):
     self._vulnerable += turns
     # print(f"{self._turn}: MONSTER TAKING VULNERABLE:{turns} -> {self._vulnerable}")
@@ -88,15 +88,19 @@ class Monster:
   def get_damage(self):
     return self._damage
 
-def play_turn(deck, monster):
-    monster.begin_turn()
-    hand = deck.deal_multi(5)
+class Player:
+  def __init__(self, deck) -> None:
+    self.deck = deck
+
+  def play_turn(self, monster):
+    hand = self.deck.deal_multi(5)
     # print(f"HAND: {hand}")
     hand.sort(reverse=True, key=lambda c: c.energy)
     energy = 3
     for card in hand:
       if energy < card.energy:
         break
+
       if card.attack:
         monster.defend(card.attack)
         energy -= card.energy
@@ -107,8 +111,13 @@ def play_turn(deck, monster):
       if card.exhaustible:
         hand.remove(card)
 
+    self.deck.discard(hand)    
+
+def play_turn(deck, monster):
+    player = Player(deck)
+    monster.begin_turn()
+    player.play_turn(monster)
     monster.end_turn()
-    deck.discard(hand)
 
 def play_game(deck, monster, turns):
   for turn in range(turns):
@@ -127,7 +136,7 @@ def main():
   cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
   deck = Deck(cards)
   turns = 16
-  trials = 1000
+  trials = 10
   cum_damage = []
   damage = []
   for trial in range(trials):
@@ -171,35 +180,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-class Player:
-  def __init__(self, deck) -> None:
-    self.deck = deck
-    self.hand = deck.deal_multi(5)
-
-  def play(self):
-    for card in self.hand[:3]:
-      card.play()
-    
-
-class Hand:
-  def __init__(self, cards, dexterity, strength):
-    self.cards = [card.name for card in cards]
-    self.total_block = sum([card.get_block(dexterity) for card in cards])
-    self.total_attack = sum([card.get_attack(strength) for card in cards])
-    self.total_energy = sum([card.energy for card in cards])
-
-  def __str__(self):
-    return "%s => BLOCK: %d, ATTACK: %d" % (
-        ", ".join(self.cards), self.total_block, self.total_attack)
-    
-class Hands:
-  def __init__(self, deck, hand_size=5, dexterity=0, strength=0):
-    self.deck = deck
-    self.hand_size = hand_size
-    self.dexterity = dexterity
-    self.strength = strength
-    self.hands = self.get_combinations()
-    self.block_distribution = [h.total_block for h in self.hands]
-    self.attack_distribution = [h.total_attack for h in self.hands]
-    self.energy_distribution = [h.total_energy for h in self.hands]
