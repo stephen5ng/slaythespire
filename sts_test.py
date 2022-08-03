@@ -25,6 +25,12 @@ class TestPlay(unittest.TestCase):
         sts.play_turn(deck, self.monster)
         self.assertEqual([8 + 6*1.5], self.monster.get_damage())
 
+    def test_play_turn_exhaustible(self):
+        cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]
+        deck = Deck(cards)
+        sts.play_turn(deck, self.monster)
+        self.assertNotIn(Card.DEMON_FORM, deck.discards)
+
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
@@ -37,6 +43,30 @@ class TestPlay(unittest.TestCase):
         sts.play_game(deck, self.monster, 2)
         self.assertEqual([18, 18], self.monster.get_damage())
 
+class TestMonster(unittest.TestCase):
+    def test_defend(self):
+        monster = Monster()
+        monster.begin_turn()
+        monster.defend(5)
+        self.assertEqual([5], monster.get_damage())
+
+    def test_vulnerable(self):
+        monster = Monster()
+
+        monster.begin_turn()
+        monster.vulnerable(2)
+        monster.defend(8)
+        monster.end_turn()
+
+        monster.begin_turn()
+        monster.defend(8)
+        monster.end_turn()
+
+        monster.begin_turn()
+        monster.defend(8)
+        monster.end_turn()
+
+        self.assertEqual([12, 12, 8], monster.get_damage())
 
 class TestDeck(unittest.TestCase):
     def test_empty_deck(self):

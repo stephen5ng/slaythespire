@@ -1,25 +1,34 @@
 import math
 from re import M
+from kiwisolver import strength
 import numpy
 import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
 
-class CardArgs(namedtuple('CardArgs', "energy attack vulnerable")):
+class CardArgs(namedtuple('CardArgs',
+              'energy attack exhaustible strength_gain vulnerable')):
     def __new__(cls, energy, 
                 attack=0,
+                exhaustible=False,
+                strength_gain=0,
                 vulnerable=0):
         return super().__new__(cls, energy, 
                                 attack,
+                                exhaustible,
+                                strength_gain,
                                 vulnerable)
     def __getnewargs__(self):
         return (self.energy, 
                 self.attack,
+                self.exhaustible,
+                self.strength_gain,
                 self.vulnerable)
 
 class Card(CardArgs, Enum):
   BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
+  DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
 
 class Deck:
@@ -53,9 +62,6 @@ class Deck:
 
   def discard(self, cards):
     self.discards.extend(cards)
-
-  def __str__(self):
-    return "\n".join([c.name for c in self.cards])
 
 class Monster:
   def __init__(self) -> None:
@@ -97,7 +103,10 @@ def play_turn(deck, monster):
       
       if card.vulnerable:
         monster.vulnerable(card.vulnerable)
-    
+
+      if card.exhaustible:
+        hand.remove(card)
+
     monster.end_turn()
     deck.discard(hand)
 
