@@ -17,7 +17,9 @@ class TestPlay(unittest.TestCase):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
         sts.play_turn(deck, self.monster)
+
         self.assertEqual([18], self.monster.get_damage())
+        self.assertEqual(5, len(cards), msg='input cards was mutated')
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]

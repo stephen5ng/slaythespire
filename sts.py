@@ -31,9 +31,10 @@ class Card(CardArgs, Enum):
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
 
+IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
 class Deck:
   def __init__(self, cards, seed=1):
-    self.deck = cards
+    self.deck = cards.copy()
     self.discards = []
     numpy.random.seed(seed=seed)
     numpy.random.shuffle(self.deck)
@@ -91,6 +92,7 @@ class Monster:
 class Player:
   def __init__(self, deck) -> None:
     self.deck = deck
+    self.strength = 0
 
   def play_turn(self, monster):
     hand = self.deck.deal_multi(5)
@@ -102,7 +104,7 @@ class Player:
         break
 
       if card.attack:
-        monster.defend(card.attack)
+        monster.defend(card.attack + self.strength)
         energy -= card.energy
       
       if card.vulnerable:
@@ -133,13 +135,12 @@ def get_scaling_damage(damage):
   return (damage[10] - damage[1]) / 10.0
 
 def main():
-  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
-  deck = Deck(cards)
   turns = 16
-  trials = 10
+  trials = 1000
   cum_damage = []
   damage = []
   for trial in range(trials):
+    deck = Deck(IRONCLAD_STARTER, seed=trial)
     monster = Monster()
     play_game(deck, monster, turns)
     damage.append(monster.get_damage())
