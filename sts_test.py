@@ -25,7 +25,15 @@ class TestPlayer(unittest.TestCase):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
         Player(Deck(cards)).play_turn(self.monster)
 
-        self.assertEqual([8 + 6*1.5], self.monster.get_damage())
+        self.assertEqual([17], self.monster.get_damage())
+
+    def test_play_turn_strength_gain(self):
+        cards = [Card.DEMON_FORM] + [Card.STRIKE] * 4
+        player = Player(Deck(cards))
+        player.play_turn(self.monster)
+        player.play_turn(self.monster)
+
+        self.assertEqual([0, 8*3], self.monster.get_damage())
 
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]

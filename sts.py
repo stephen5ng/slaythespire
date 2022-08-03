@@ -1,6 +1,5 @@
 import math
-from re import M
-from kiwisolver import strength
+import logging
 import numpy
 import matplotlib.pyplot as plt
 from enum import Enum
@@ -43,6 +42,7 @@ class Deck:
     if not self.deck:
       if self.discards:
         self.deck = self.discards
+        logging.info("shuffling...")
         numpy.random.shuffle(self.deck)
         self.discards = []
 
@@ -75,11 +75,11 @@ class Monster:
   
   def defend(self, attack):
     self._damage[self._turn] += attack * (1.5 if self._vulnerable else 1.0)
-    # print(f"{self._turn}: MONSTER TAKING DAMAGE: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
+    logging.debug(f"{self._turn}: MONSTER TAKING DAMAGE: vuln: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
 
   def vulnerable(self, turns):
     self._vulnerable += turns
-    # print(f"{self._turn}: MONSTER TAKING VULNERABLE:{turns} -> {self._vulnerable}")
+    logging.debug(f"{self._turn}: MONSTER TAKING VULNERABLE:{turns} -> {self._vulnerable}")
 
   def end_turn(self):
     if self._vulnerable > 0:
@@ -90,7 +90,7 @@ class Monster:
     return self._damage
 
 class Player:
-  def __init__(self, deck) -> None:
+  def __init__(self, deck: Deck) -> None:
     self.deck = deck
     self.strength = 0
 
@@ -105,18 +105,21 @@ class Player:
       if energy < card.energy:
         break
 
-      if card.attack:
-        monster.defend(card.attack + self.strength)
+      if card.attack or card.strength_gain:
+        logging.info(f"playing card: {card}")
         energy -= card.energy
+
+        if card.attack:
+          monster.defend(card.attack + self.strength)
       
-      if card.vulnerable:
-        monster.vulnerable(card.vulnerable)
+        if card.vulnerable:
+          monster.vulnerable(card.vulnerable)
 
-      if card.strength_gain:
-        self.strength += card.strength_gain
+        if card.strength_gain:
+          self.strength += card.strength_gain
 
-      if card.exhaustible:
-        hand.remove(card)
+        if card.exhaustible:
+          hand.remove(card)
 
     
     self.deck.discard(hand)    
@@ -136,6 +139,30 @@ def get_frontloaded_damage(damage: list):
 def get_scaling_damage(damage: list):
   return (damage[10] - damage[1]) / 10.0
 
+def create_scatter_plot_data(plot_data):
+  trials = len(plot_data)
+  plot_data = numpy.swapaxes(plot_data, 0, 1)
+  scatter_data = {}
+  scatter_data['turns'] = []
+  scatter_data['damage'] = []
+  size = []
+  logging.debug(f"plot_data: {plot_data}")
+  for turn in range(len(plot_data)):
+    turn_damage = plot_data[turn]
+    r = range(int(min(turn_damage)), 2+int(max(turn_damage)))
+    hist = numpy.histogram(turn_damage, bins=r)
+    for bin_count, bin in zip(*hist):
+      if bin_count:
+        scatter_data['turns'].append(turn)
+        scatter_data['damage'].append(bin)
+        size.append(bin_count/(trials/100.0))
+    if turn == 0:
+      logging.debug(f"TURN0 hist: {hist}")
+      logging.debug(f"TURN0 size: {size}")
+      logging.debug(f"TURN0 scatter_data {scatter_data}")
+ 
+  return scatter_data, size
+
 def main():
   turns = 16
   trials = 1000
@@ -147,32 +174,12 @@ def main():
     player.play_game(monster, turns)
     damage.append(monster.get_damage())
     cum_damage.append(numpy.cumsum(monster.get_damage()))
-  plot_data = damage
-  print(f"damage: {damage}")
 
-  plot_data = numpy.swapaxes(plot_data, 0, 1)
-  scatter_data = {}
-  scatter_data['turns'] = []
-  scatter_data['damage'] = []
-  size = []
-  print(f"plot_data: {plot_data}")
-  for turn in range(turns):
-    turn_damage = plot_data[turn]
-    r = range(int(min(turn_damage)), 2+int(max(turn_damage)))
-    # print(f"turn {turn} damage: {turn_damage} r: {r}")
-    hist = numpy.histogram(turn_damage, bins=r)
-    for bin_count, bin in zip(*hist):
-      if bin_count:
-        scatter_data['turns'].append(turn)
-        scatter_data['damage'].append(bin)
-        size.append(bin_count/(trials/100.0))
-    if turn == 0:
-      print(f"TURN0 HIST: {hist}")
-      print(f"TURN0 size: {size}")
-      print(f"turn 0: {scatter_data}")
+  logging.debug(f"damage: {damage}")
+  scatter_data, size = create_scatter_plot_data(damage)
  
   average_damage = numpy.average(damage, axis=0)
-  print(f"scatter_data: {scatter_data}, {size}")
+  logging.debug(f"scatter_data: {scatter_data}, {size}")
   print(f"average: {average_damage}")
   print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
   print(f"SCALING DAMAGE {get_scaling_damage(average_damage):.2f}")
