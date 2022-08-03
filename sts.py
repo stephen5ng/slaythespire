@@ -73,7 +73,7 @@ def play_game(deck, turns):
   return damage
 
 def main():
-  cards = [DEFEND]*5 + [STRIKE]*5
+  cards = [Card.DEFEND]*5 + [Card.STRIKE]*5
   deck = Deck(cards)
   data = {}
   turns = 20
