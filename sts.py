@@ -115,11 +115,11 @@ def main():
   turns = 20
   trials = 100
   data = []
-  turn_0 = []
   for trial in range(trials):
-    damage = play_game(deck, turns)
+    monster = Monster()
+    damage = play_game(deck, monster, turns)
     data.append(damage)
-
+  print(f"data: {data}")
   data = numpy.swapaxes(data, 0, 1)
   scatter_data = {}
   scatter_data['turns'] = []
@@ -128,7 +128,8 @@ def main():
   print(f"data: {data}")
   for turn in range(turns):
     damage = data[turn]
-    hist = numpy.histogram(damage, bins=max(damage)-min(damage))
+    print(f"damage: {damage}")
+    hist = numpy.histogram(damage, bins=int(max(damage)-min(damage)))
     for h0, h1 in zip(*hist):
       scatter_data['turns'].append(turn)
       scatter_data['damage'].append(h1)
