@@ -68,11 +68,11 @@ class Monster:
   
   def defend(self, attack):
     self._damage[self._turn] += attack * (1.5 if self._vulnerable else 1.0)
-    print(f"MONSTER TAKING DAMAGE: {self._turn}, {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
+    # print(f"{self._turn}: MONSTER TAKING DAMAGE: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
   
   def vulnerable(self, turns):
     self._vulnerable += turns
-    print(f"MONSTER TAKING VULNERABLE: {self._turn}: {turns} -> {self._vulnerable}")
+    # print(f"{self._turn}: MONSTER TAKING VULNERABLE:{turns} -> {self._vulnerable}")
 
   def end_turn(self):
     if self._vulnerable > 0:
@@ -85,6 +85,7 @@ class Monster:
 def play_turn(deck, monster):
     monster.begin_turn()
     hand = deck.deal_multi(5)
+    # print(f"HAND: {hand}")
     hand.sort(reverse=True, key=lambda c: c.energy)
     energy = 3
     for card in hand:
@@ -101,61 +102,62 @@ def play_turn(deck, monster):
     deck.discard(hand)
 
 def play_game(deck, monster, turns):
-  damage = []
-  cum_damage = 0
   for turn in range(turns):
     play_turn(deck, monster)
-    cum_damage += monster.get_damage()[turn]
-    damage.append(cum_damage)
-  return damage
+
+def get_frontloaded_damage(damage):
+  return (damage[0] + 
+          damage[1]/2.0 + 
+          damage[2]/4.0 + 
+          damage[3]/8.0)
 
 def main():
-  cards = [Card.DEFEND]*5 + [Card.STRIKE]*5
+  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
   deck = Deck(cards)
-  turns = 20
-  trials = 100
-  data = []
+  turns = 10
+  trials = 1000
+  cum_damage = []
+  damage = []
   for trial in range(trials):
     monster = Monster()
-    damage = play_game(deck, monster, turns)
-    data.append(damage)
-  print(f"data: {data}")
-  data = numpy.swapaxes(data, 0, 1)
+    play_game(deck, monster, turns)
+    damage.append(monster.get_damage())
+    cum_damage.append(numpy.cumsum(monster.get_damage()))
+  plot_data = damage
+  print(f"damage: {damage}")
+
+  plot_data = numpy.swapaxes(plot_data, 0, 1)
   scatter_data = {}
   scatter_data['turns'] = []
   scatter_data['damage'] = []
   size = []
-  print(f"data: {data}")
+  print(f"plot_data: {plot_data}")
   for turn in range(turns):
-    damage = data[turn]
-    print(f"damage: {damage}")
-    hist = numpy.histogram(damage, bins=int(max(damage)-min(damage)))
-    for h0, h1 in zip(*hist):
-      scatter_data['turns'].append(turn)
-      scatter_data['damage'].append(h1)
-      size.append(h0)
+    turn_damage = plot_data[turn]
+    r = range(int(min(turn_damage)), 2+int(max(turn_damage)))
+    # print(f"turn {turn} damage: {turn_damage} r: {r}")
+    hist = numpy.histogram(turn_damage, bins=r)
+    for bin_count, bin in zip(*hist):
+      if bin_count:
+        scatter_data['turns'].append(turn)
+        scatter_data['damage'].append(bin)
+        size.append(bin_count/(trials/100.0))
+    if turn == 0:
+      print(f"TURN0 HIST: {hist}")
+      print(f"TURN0 size: {size}")
+      print(f"turn 0: {scatter_data}")
  
-  print(f"hist: {data}, {scatter_data}, {size}")
+  average_damage = numpy.average(damage, axis=0)
+  print(f"scatter_data: {scatter_data}, {size}")
+  print(f"average: {average_damage}")
+  print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
   fig, ax = plt.subplots()
   ax.scatter('turns', 'damage', s=size, data = scatter_data)
 
-  # print(f"attack: {data}")
-  # fig, ax = plt.subplots()
-  # ax.scatter('turns', 'damage', c='color', s=2.0, data = data)
-  # ax.set_xlabel('turn')
-  # ax.set_ylabel('damage')
-  
   plt.show()
 
 if __name__ == "__main__":
     main()
-
-# class Monster:
-#   def __init__(self):
-#     self.hp = 100
-  
-#   def defend(self, attack):
-#     self.hp -= attack
 
 class Player:
   def __init__(self, deck) -> None:

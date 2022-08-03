@@ -16,26 +16,26 @@ class TestPlay(unittest.TestCase):
     def test_play_turn(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        damage = sts.play_turn(deck, self.monster)
-        self.assertEqual(18, self.monster.get_damage()[0])
+        sts.play_turn(deck, self.monster)
+        self.assertEqual([18], self.monster.get_damage())
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
         deck = Deck(cards)
-        damage = sts.play_turn(deck, self.monster)
-        self.assertEqual(8 + 6*1.5, self.monster.get_damage()[0])
+        sts.play_turn(deck, self.monster)
+        self.assertEqual([8 + 6*1.5], self.monster.get_damage())
 
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        damage = sts.play_game(deck, self.monster, 1)
-        self.assertEqual([18], damage)
+        sts.play_game(deck, self.monster, 1)
+        self.assertEqual([18], self.monster.get_damage())
     
     def test_multi_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        damage = sts.play_game(deck, self.monster, 2)
-        self.assertEqual([18, 36], damage)
+        sts.play_game(deck, self.monster, 2)
+        self.assertEqual([18, 18], self.monster.get_damage())
 
 
 class TestDeck(unittest.TestCase):
