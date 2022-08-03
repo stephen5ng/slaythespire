@@ -75,19 +75,37 @@ def play_game(deck, turns):
 def main():
   cards = [Card.DEFEND]*5 + [Card.STRIKE]*5
   deck = Deck(cards)
-  data = {}
   turns = 20
-  for trial in range(10):
+  trials = 100
+  data = []
+  turn_0 = []
+  for trial in range(trials):
     damage = play_game(deck, turns)
-    data['turns'] = data.get('turns', []) + list(range(turns))
-    data['damage'] = data.get('damage', []) + damage.copy()
-    data['color'] = data.get('color', []) + [1+trial*3]*turns
-  
-  print(f"attack_damage: {data}")
+    data.append(damage)
+
+  data = numpy.swapaxes(data, 0, 1)
+  scatter_data = {}
+  scatter_data['turns'] = []
+  scatter_data['damage'] = []
+  size = []
+  print(f"data: {data}")
+  for turn in range(turns):
+    damage = data[turn]
+    hist = numpy.histogram(damage, bins=max(damage)-min(damage))
+    for h0, h1 in zip(*hist):
+      scatter_data['turns'].append(turn)
+      scatter_data['damage'].append(h1)
+      size.append(h0)
+ 
+  print(f"hist: {data}, {scatter_data}, {size}")
   fig, ax = plt.subplots()
-  ax.scatter('turns', 'damage', c='color', s=2.0, data = data)
-  ax.set_xlabel('turn')
-  ax.set_ylabel('damage')
+  ax.scatter('turns', 'damage', s=size, data = scatter_data)
+
+  # print(f"attack_damage: {data}")
+  # fig, ax = plt.subplots()
+  # ax.scatter('turns', 'damage', c='color', s=2.0, data = data)
+  # ax.set_xlabel('turn')
+  # ax.set_ylabel('damage')
   
   plt.show()
 
