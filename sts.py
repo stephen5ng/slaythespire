@@ -95,6 +95,8 @@ class Player:
     self.strength = 0
 
   def play_turn(self, monster):
+    monster.begin_turn()
+
     hand = self.deck.deal_multi(5)
     # print(f"HAND: {hand}")
     hand.sort(reverse=True, key=lambda c: c.energy)
@@ -115,22 +117,19 @@ class Player:
 
     self.deck.discard(hand)    
 
-def play_turn(player: Player, monster: Monster):
-    monster.begin_turn()
-    player.play_turn(monster)
     monster.end_turn()
 
-def play_game(player: Player, monster: Monster, turns: int):
-  for turn in range(turns):
-    play_turn(player, monster)
+  def play_game(self, monster: Monster, turns: int):
+    for turn in range(turns):
+      self.play_turn(monster)
 
-def get_frontloaded_damage(damage):
+def get_frontloaded_damage(damage: list):
   return (damage[0] + 
           damage[1]/2.0 + 
           damage[2]/4.0 + 
           damage[3]/8.0)
 
-def get_scaling_damage(damage):
+def get_scaling_damage(damage: list):
   return (damage[10] - damage[1]) / 10.0
 
 def main():
@@ -141,7 +140,7 @@ def main():
   for trial in range(trials):
     player = Player(Deck(IRONCLAD_STARTER, seed=trial))
     monster = Monster()
-    play_game(player, monster, turns)
+    player.play_game(monster, turns)
     damage.append(monster.get_damage())
     cum_damage.append(numpy.cumsum(monster.get_damage()))
   plot_data = damage

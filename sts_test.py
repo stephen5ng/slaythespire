@@ -9,39 +9,40 @@ class TestCards(unittest.TestCase):
         self.assertEqual(Card.DEFEND.attack, 0)
         self.assertEqual(Card.STRIKE.attack, 6)
 
-class TestPlay(unittest.TestCase):
+class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()
 
     def test_play_turn(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        sts.play_turn(Player(deck), self.monster)
+        Player(deck).play_turn(self.monster)
 
         self.assertEqual([18], self.monster.get_damage())
         self.assertEqual(5, len(cards), msg='input cards was mutated')
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
+        Player(Deck(cards)).play_turn(self.monster)
 
-        sts.play_turn(Player(Deck(cards)), self.monster)
         self.assertEqual([8 + 6*1.5], self.monster.get_damage())
 
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]
         deck = Deck(cards)
-        sts.play_turn(Player(deck), self.monster)
+        Player(deck).play_turn(self.monster)
+
         self.assertNotIn(Card.DEMON_FORM, deck.discards)
 
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        sts.play_game(Player(Deck(cards)), self.monster, 1)
+        Player(Deck(cards)).play_game(self.monster, 1)
 
         self.assertEqual([18], self.monster.get_damage())
     
     def test_multi_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        sts.play_game(Player(Deck(cards)), self.monster, 2)
+        Player(Deck(cards)).play_game(self.monster, 2)
 
         self.assertEqual([18, 18], self.monster.get_damage())
 
@@ -50,6 +51,7 @@ class TestMonster(unittest.TestCase):
         monster = Monster()
         monster.begin_turn()
         monster.defend(5)
+
         self.assertEqual([5], monster.get_damage())
 
     def test_vulnerable(self):
