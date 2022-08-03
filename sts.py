@@ -1,9 +1,14 @@
 import math
+from re import M
 import numpy
+import matplotlib.pyplot as plt
 
 class Card:
-  def __init__(self, attack):
-    self.attack = attack
+  def __init__(self, attack_damage):
+    self.attack_damage = attack_damage
+
+  def attack(self, target):
+    target.defend(self.attack_damage)
 
 class Deck:
   def __init__(self, cards, seed=1):
@@ -39,6 +44,68 @@ class Deck:
 
   def __str__(self):
     return "\n".join([c.name for c in self.cards])
+
+def play_turn(deck):
+    hand = deck.deal_multi(5)
+    damage = 0
+    played_cards = []
+    for card in hand:
+      if card.attack_damage:
+        damage += card.attack_damage
+        played_cards.append(card)
+        if len(played_cards) >= 3:
+          break
+    deck.discard(hand)
+    print(f"damage: {damage}")
+    return damage
+
+def play_game(deck, turns):
+  damage = []
+  cum_damage = 0
+  for turn in range(turns):
+    cum_damage += play_turn(deck)
+    damage.append(cum_damage)
+  return damage
+
+def main():
+  cards = [Card(0), Card(0), Card(0), Card(0), Card(0),
+           Card(6), Card(6), Card(6), Card(6), Card(6)]
+  deck = Deck(cards)
+  data = {}
+  turns = 20
+  for trial in range(10):
+    damage = play_game(deck, turns)
+    data['turns'] = data.get('turns', []) + list(range(turns))
+    data['damage'] = data.get('damage', []) + damage.copy()
+    data['color'] = data.get('color', []) + [1+trial*3]*turns
+  
+  print(f"attack_damage: {data}")
+  fig, ax = plt.subplots()
+  ax.scatter('turns', 'damage', c='color', s=2.0, data = data)
+  ax.set_xlabel('turn')
+  ax.set_ylabel('damage')
+  
+  plt.show()
+
+if __name__ == "__main__":
+    main()
+
+class Monster:
+  def __init__(self):
+    self.hp = 100
+  
+  def defend(self, attack_damage):
+    self.hp -= attack_damage
+
+class Player:
+  def __init__(self, deck) -> None:
+    self.deck = deck
+    self.hand = deck.deal_multi(5)
+
+  def play(self):
+    for card in self.hand[:3]:
+      card.play()
+    
 
 class Hand:
   def __init__(self, cards, dexterity, strength):
