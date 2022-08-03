@@ -94,7 +94,7 @@ class Player:
     self.deck = deck
     self.strength = 0
 
-  def play_turn(self, monster):
+  def play_turn(self, monster: Monster):
     monster.begin_turn()
 
     hand = self.deck.deal_multi(5)
@@ -112,9 +112,13 @@ class Player:
       if card.vulnerable:
         monster.vulnerable(card.vulnerable)
 
+      if card.strength_gain:
+        self.strength += card.strength_gain
+
       if card.exhaustible:
         hand.remove(card)
 
+    
     self.deck.discard(hand)    
 
     monster.end_turn()
