@@ -2,13 +2,18 @@ import math
 from re import M
 import numpy
 import matplotlib.pyplot as plt
+from enum import Enum
+from collections import namedtuple
 
-class Card:
-  def __init__(self, attack_damage):
-    self.attack_damage = attack_damage
+class CardArgs(namedtuple('CardArgs', "energy attack_damage")):
+    def __new__(cls, energy, attack_damage=0):
+        return super().__new__(cls, energy, attack_damage)
+    def __getnewargs__(self):
+        return (self.energy, self.attack_damage)
 
-  def attack(self, target):
-    target.defend(self.attack_damage)
+class Card(CardArgs, Enum):
+  STRIKE = CardArgs(1, attack_damage=6)
+  DEFEND = CardArgs(1)
 
 class Deck:
   def __init__(self, cards, seed=1):
@@ -68,8 +73,7 @@ def play_game(deck, turns):
   return damage
 
 def main():
-  cards = [Card(0), Card(0), Card(0), Card(0), Card(0),
-           Card(6), Card(6), Card(6), Card(6), Card(6)]
+  cards = [DEFEND]*5 + [STRIKE]*5
   deck = Deck(cards)
   data = {}
   turns = 20
