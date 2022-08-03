@@ -5,15 +5,15 @@ import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
 
-class CardArgs(namedtuple('CardArgs', "energy attack_damage")):
-    def __new__(cls, energy, attack_damage=0):
-        return super().__new__(cls, energy, attack_damage)
+class CardArgs(namedtuple('CardArgs', "energy attack")):
+    def __new__(cls, energy, attack=0):
+        return super().__new__(cls, energy, attack)
     def __getnewargs__(self):
-        return (self.energy, self.attack_damage)
+        return (self.energy, self.attack)
 
 class Card(CardArgs, Enum):
-  STRIKE = CardArgs(1, attack_damage=6)
   DEFEND = CardArgs(1)
+  STRIKE = CardArgs(1, attack=6)
 
 class Deck:
   def __init__(self, cards, seed=1):
@@ -55,8 +55,8 @@ def play_turn(deck):
     damage = 0
     played_cards = []
     for card in hand:
-      if card.attack_damage:
-        damage += card.attack_damage
+      if card.attack:
+        damage += card.attack
         played_cards.append(card)
         if len(played_cards) >= 3:
           break
@@ -101,7 +101,7 @@ def main():
   fig, ax = plt.subplots()
   ax.scatter('turns', 'damage', s=size, data = scatter_data)
 
-  # print(f"attack_damage: {data}")
+  # print(f"attack: {data}")
   # fig, ax = plt.subplots()
   # ax.scatter('turns', 'damage', c='color', s=2.0, data = data)
   # ax.set_xlabel('turn')
@@ -116,8 +116,8 @@ class Monster:
   def __init__(self):
     self.hp = 100
   
-  def defend(self, attack_damage):
-    self.hp -= attack_damage
+  def defend(self, attack):
+    self.hp -= attack
 
 class Player:
   def __init__(self, deck) -> None:
