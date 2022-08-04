@@ -9,13 +9,14 @@ import numpy.polynomial.polynomial as poly
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 class CardArgs(namedtuple('CardArgs',
-              'energy attack attack_multiplier exhaustible strength_gain strength_gain_buff vulnerable')):
+              'energy attack attack_multiplier exhaustible strength_gain strength_gain_buff strength_multiplier vulnerable')):
     def __new__(cls, energy, 
                 attack=0,
                 attack_multiplier=1,
                 exhaustible=False,
                 strength_gain=0,
                 strength_gain_buff=0,
+                strength_multiplier=1,
                 vulnerable=0):
         return super().__new__(cls, energy, 
                                 attack,
@@ -23,6 +24,7 @@ class CardArgs(namedtuple('CardArgs',
                                 exhaustible,
                                 strength_gain,
                                 strength_gain_buff,
+                                strength_multiplier,
                                 vulnerable)
     def __getnewargs__(self):
         return (self.energy, 
@@ -31,16 +33,17 @@ class CardArgs(namedtuple('CardArgs',
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_gain_buff,
+                self.strength_multiplier,
                 self.vulnerable)
 
 class Card(CardArgs, Enum):
   BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain_buff=2)
+  HEAVY_BLADE = CardArgs(1, attack=14, strength_multiplier=3)
   INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
   TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
-  
   def __str__(self):
     return self.name
 
@@ -112,17 +115,9 @@ class Player:
     self.strength = 0
     self.strength_gain_buff = 0
 
-  def play_turn(self, monster: Monster):
-    played_cards = []
-
-    monster.begin_turn()
-
-    self.strength += self.strength_gain_buff    
-    
-    hand = self.deck.deal_multi(5)
-    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
-    logging.debug(f"HAND: {hand}")
+  def _play_hand(self, hand: list, monster: Monster):
     energy = 3
+    played_cards = []
     for card in hand:
       if energy < card.energy:
         break
@@ -133,7 +128,8 @@ class Player:
         energy -= card.energy
 
         if card.attack:
-          monster.defend(card.attack_multiplier * (card.attack + self.strength))
+          monster.defend(card.attack_multiplier * 
+                        (card.attack + self.strength * card.strength_multiplier))
       
         if card.vulnerable:
           monster.vulnerable(card.vulnerable)
@@ -146,6 +142,18 @@ class Player:
 
         if card.exhaustible:
           hand.remove(card)
+
+    return played_cards
+
+  def play_turn(self, monster: Monster):
+    monster.begin_turn()
+
+    self.strength += self.strength_gain_buff    
+    
+    hand = self.deck.deal_multi(5)
+    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
+    logging.debug(f"HAND: {hand}")
+    played_cards = self._play_hand(hand, monster)
 
     self.deck.discard(hand)    
     dmg = monster.get_damage()
@@ -164,9 +172,6 @@ def get_frontloaded_damage(damage: list):
           damage[1]/2.0 + 
           damage[2]/4.0 + 
           damage[3]/8.0)
-
-def get_scaling_damage(damage: list):
-  return (damage[10] - damage[1]) / 10.0
 
 def create_scatter_plot_data(plot_data):
   trials = len(plot_data)
@@ -192,18 +197,12 @@ def create_scatter_plot_data(plot_data):
  
   return scatter_data, size
 
-# def objective(x, a, b):
-# 	return a * x + b
-def objective(x, a, b, c):
-  print(f"abc {x}, {a} {b} {c}")
-  return a * x + b*numpy.power(x, 2) + c
-
 def main():
   turns = 40
   trials = 1000
   cum_damage = []
   damage = []
-  cards = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH] + [Card.INFLAME]
+  cards = [Card.DEFEND]*4 + [Card.STRIKE]*4 + [Card.HEAVY_BLADE] + [Card.BASH] + [Card.DEMON_FORM]
   for trial in range(trials):
     player = Player(Deck(cards, seed=trial))
     monster = Monster()
@@ -221,12 +220,10 @@ def main():
   coefs = poly.polyfit(x_after_first_deck, average_damage[turns_after_first_deck:], 3)
   ffit = poly.polyval(x_after_first_deck, coefs)
 
-  c = [f"{cc:.2f}" for cc in coefs[1:]]
-  print(f"coeffs: {c}")
   logging.debug(f"scatter_data: {scatter_data}, {size}")
   print(f"average: {average_damage}")
   print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
-  print(f"SCALING DAMAGE {get_scaling_damage(average_damage):.2f}")
+  print(f"SCALING DAMAGE: " + str([f"{cc:.1f}" for cc in coefs[1:]]))
   fig, ax = plt.subplots()
   plt.plot(x_after_first_deck, ffit, color='green')
 
