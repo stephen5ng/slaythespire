@@ -8,22 +8,32 @@ import numpy.polynomial.polynomial as poly
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
-class CardArgs(namedtuple('CardArgs',
-              'energy attack attack_multiplier exhaustible strength_gain strength_buff strength_multiplier vulnerable')):
+class CardArgs(namedtuple('CardArgs', (
+              'energy '
+              'attack '
+              'attack_multiplier '
+              'exhaustible '
+              'strength_buff '
+              'strength_gain '
+              'strength_loss '
+              'strength_multiplier '
+              'vulnerable'))):
     def __new__(cls, energy, 
                 attack=0,
                 attack_multiplier=1,
                 exhaustible=False,
-                strength_gain=0,
                 strength_buff=0,
+                strength_gain=0,
+                strength_loss=0,
                 strength_multiplier=1,
                 vulnerable=0):
         return super().__new__(cls, energy, 
                                 attack,
                                 attack_multiplier,
                                 exhaustible,
-                                strength_gain,
                                 strength_buff,
+                                strength_gain,
+                                strength_loss,
                                 strength_multiplier,
                                 vulnerable)
     def __getnewargs__(self):
@@ -41,6 +51,7 @@ class Card(CardArgs, Enum):
   BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_buff=2)
+  FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
   HEAVY_BLADE = CardArgs(1, attack=14, strength_multiplier=3)
   INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
   STRIKE = CardArgs(1, attack=6)
@@ -55,13 +66,16 @@ class Card(CardArgs, Enum):
     if self.name == 'ANGER':
       deck.discards.append(Card.ANGER)
 
+
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
 class Deck:
-  def __init__(self, cards, seed=1):
+  def __init__(self, cards, seed=1, shuffle=True):
     self.deck = cards.copy()
     self.discards = []
     numpy.random.seed(seed=seed)
-    numpy.random.shuffle(self.deck)
+    if shuffle:
+      numpy.random.shuffle(self.deck)
+    logging.info(f"Deck: {self.deck}")
 
   def deal(self):
     if not self.deck:
@@ -119,9 +133,11 @@ class Player:
     self.deck = deck
     self.strength = 0
     self.strength_buff = 0
+    self.post_strength_debuff_once = 0
 
   def _play_hand(self, hand: list, monster: Monster):
-    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
+    # Sort by descending energy (except 0-cost cards come first), then put exhaustibles first.
+    hand.sort(reverse=True, key=lambda c: (c.energy if c.energy else 1000, c.exhaustible))
 
     logging.debug(f"HAND: {hand}")
 
@@ -143,16 +159,15 @@ class Player:
         if card.vulnerable:
           monster.vulnerable(card.vulnerable)
 
-        if card.strength_buff:
-          self.strength_buff += card.strength_buff
-
-        if card.strength_gain:
-          self.strength += card.strength_gain
+        self.strength_buff += card.strength_buff
+        self.strength += card.strength_gain
+        self.post_strength_debuff_once += card.strength_loss
 
         if card.exhaustible:
           hand.remove(card)
 
         card.extra_action(self.deck)
+
 
     return played_cards
 
@@ -164,7 +179,11 @@ class Player:
     played_cards = self._play_hand(hand, monster)
     logging.info(f"Played: {played_cards}")
 
-    self.deck.discard(hand)    
+    self.deck.discard(hand)
+    if self.post_strength_debuff_once:
+      self.strength -= self.post_strength_debuff_once
+      self.post_strength_debuff_once = 0
+
     monster.end_turn()
 
   def play_game(self, monster: Monster, turns: int):
