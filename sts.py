@@ -16,39 +16,39 @@ class CardArgs(namedtuple('CardArgs', (
     'energy '
     'attack '
     'attack_multiplier '
+    'attack_strength_multiplier '
     'exhaustible '
     'strength_buff '
     'strength_gain '
     'strength_loss '
-    'attack_strength_multiplier '
         'vulnerable'))):
     def __new__(cls, energy,
                 attack=0,
                 attack_multiplier=1,
+                attack_strength_multiplier=1,
                 exhaustible=False,
                 strength_buff=0,
                 strength_gain=0,
                 strength_loss=0,
-                attack_strength_multiplier=1,
                 vulnerable=0):
         return super().__new__(cls, energy,
                                attack,
                                attack_multiplier,
+                               attack_strength_multiplier,
                                exhaustible,
                                strength_buff,
                                strength_gain,
                                strength_loss,
-                               attack_strength_multiplier,
                                vulnerable)
 
     def __getnewargs__(self):
         return (self.energy,
                 self.attack,
                 self.attack_multiplier,
+                self.attack_strength_multiplier,
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_buff,
-                self.attack_strength_multiplier,
                 self.vulnerable)
 
 
