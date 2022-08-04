@@ -38,7 +38,7 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([17], self.monster.get_damage())
 
-    def test_play_turn_strength_gain_buff(self):
+    def test_play_turn_strength_buff(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 4
         player = Player(Deck(cards))
         player.play_turn(self.monster)
