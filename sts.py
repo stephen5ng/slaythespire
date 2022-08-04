@@ -1,5 +1,6 @@
 import math
 import logging
+from re import S
 import numpy
 import sys
 import matplotlib.pyplot as plt
@@ -19,7 +20,7 @@ class CardArgs(namedtuple('CardArgs', (
     'strength_buff '
     'strength_gain '
     'strength_loss '
-    'strength_multiplier '
+    'attack_strength_multiplier '
         'vulnerable'))):
     def __new__(cls, energy,
                 attack=0,
@@ -28,7 +29,7 @@ class CardArgs(namedtuple('CardArgs', (
                 strength_buff=0,
                 strength_gain=0,
                 strength_loss=0,
-                strength_multiplier=1,
+                attack_strength_multiplier=1,
                 vulnerable=0):
         return super().__new__(cls, energy,
                                attack,
@@ -37,7 +38,7 @@ class CardArgs(namedtuple('CardArgs', (
                                strength_buff,
                                strength_gain,
                                strength_loss,
-                               strength_multiplier,
+                               attack_strength_multiplier,
                                vulnerable)
 
     def __getnewargs__(self):
@@ -47,7 +48,7 @@ class CardArgs(namedtuple('CardArgs', (
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_buff,
-                self.strength_multiplier,
+                self.attack_strength_multiplier,
                 self.vulnerable)
 
 
@@ -57,7 +58,7 @@ class Card(CardArgs, Enum):
     DEFEND = CardArgs(1)
     DEMON_FORM = CardArgs(3, exhaustible=True, strength_buff=2)
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
-    HEAVY_BLADE = CardArgs(1, attack=14, strength_multiplier=3)
+    HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)
     INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
     STRIKE = CardArgs(1, attack=6)
     TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
@@ -93,7 +94,8 @@ class Deck:
                 numpy.random.shuffle(self.deck)
                 self.discards = []
 
-        # Callers must handle exception if deck is empty.
+        if not self.deck:
+            return None  # type: ignore
         return self.deck.pop(0)
 
     def deal_multi(self, count):
@@ -165,7 +167,7 @@ class Player:
 
                 if card.attack:
                     monster.defend(card.attack_multiplier *
-                                   (card.attack + self.strength * card.strength_multiplier))
+                                   (card.attack + self.strength * card.attack_strength_multiplier))
 
                 if card.vulnerable:
                     monster.vulnerable(card.vulnerable)
@@ -236,6 +238,21 @@ def create_scatter_plot_data(plot_data):
     return scatter_data, size
 
 
+def format_scaling_damage(coefs):
+    scaling_damages = tuple([int(round(cc, 0)) for cc in coefs[1:]])
+    while scaling_damages and not scaling_damages[-1]:
+        scaling_damages = scaling_damages[:-1]
+    if not scaling_damages:
+        return "O(1)"
+
+    preandpost = [('', '*n'), (' + ', '*n^2'), (' + ', '*n^3')]
+    ret = ''
+    for i in range(len(scaling_damages)):
+        pp = preandpost[i]
+        ret += f"{pp[0]}{scaling_damages[i]}{pp[1]}"
+    return f"O({ret})"
+
+
 def main():
     if len(sys.argv) > 1:
         cards = eval(sys.argv[1])
@@ -266,19 +283,19 @@ def main():
 
     logging.debug(f"scatter_data: {scatter_data}, {size}")
     frontloaded_damage = get_frontloaded_damage(average_damage)
-    scaling_damage = str(
-        tuple([f"{cc:.1f}" for cc in coefs[1:]])).replace("'", "")
+    scaling_damage = format_scaling_damage(coefs)
+
     print(f"average: {average_damage}")
-    print(f"FRONTLOADED DAMAGE {frontloaded_damage:.2f}")
+    print(f"FRONTLOADED DAMAGE: {frontloaded_damage:.2f}")
     print(f"SCALING DAMAGE: {scaling_damage}")
     fig, ax = plt.subplots()
     plt.plot(x_after_first_deck, ffit, color='green')
 
     ax.scatter(x, average_damage, s=4, color='red', marker="_")
-
     ax.scatter('turns', 'damage', s=size, data=scatter_data)
+
     ax.set_title(
-        f'DAMAGE: {frontloaded_damage:.2f} / {scaling_damage}', loc='right')
+        f'DAMAGE: [{frontloaded_damage:.2f}hp, {scaling_damage}]', loc='right')
 
     ax.set_xlabel(f'turn')
     ax.set_ylabel('damage')

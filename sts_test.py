@@ -6,6 +6,21 @@ import sts
 from sts import Card, Deck, Monster, Player
 
 
+class TestDamage(unittest.TestCase):
+    def test_scaling_damage(self):
+        self.assertEqual("O(1)",
+                         sts.format_scaling_damage([17, -0.0, -0.0, 0]))
+
+        self.assertEqual("O(7*n)",
+                         sts.format_scaling_damage([17, 6.9, 0.2, 0]))
+
+        self.assertEqual("O(7*n + 1*n^2)",
+                         sts.format_scaling_damage([17, 6.9, 1.3, 0]))
+
+        self.assertEqual("O(7*n + 1*n^2 + 4*n^3)",
+                         sts.format_scaling_damage([17, 6.9, 1.3, 4.0]))
+
+
 class TestCards(unittest.TestCase):
     def test_card(self):
         self.assertEqual(Card.DEFEND.attack, 0)
@@ -31,8 +46,8 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([24], self.monster.get_damage())
         self.assertEqual([
-            Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE,
-            Card.ANGER], deck.discards)
+            Card.ANGER, Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE
+        ], deck.discards)
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
