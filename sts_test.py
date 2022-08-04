@@ -56,7 +56,6 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([8*2, 8*3, 8*3], self.monster.get_damage())
 
-
     def test_play_turn_flex(self):
         cards = [Card.FLEX] + [Card.STRIKE] * 9
         player = Player(Deck(cards, shuffle=False))

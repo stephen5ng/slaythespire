@@ -1,6 +1,7 @@
 import math
 import logging
 import numpy
+import sys
 import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
@@ -66,8 +67,8 @@ class Card(CardArgs, Enum):
     if self.name == 'ANGER':
       deck.discards.append(Card.ANGER)
 
-
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
+
 class Deck:
   def __init__(self, cards, seed=1, shuffle=True):
     self.deck = cards.copy()
@@ -224,11 +225,15 @@ def create_scatter_plot_data(plot_data):
   return scatter_data, size
 
 def main():
+  if len(sys.argv) > 1:
+    cards = eval(sys.argv[1])
+  else:
+    cards = IRONCLAD_STARTER
+
   turns = 40
   trials = 1000
   cum_damage = []
   damage = []
-  cards = [Card.DEFEND]*4 + [Card.STRIKE]*4 + [Card.BASH] + [Card.ANGER]
   for trial in range(trials):
     player = Player(Deck(cards, seed=trial))
     monster = Monster()
@@ -247,16 +252,21 @@ def main():
   ffit = poly.polyval(x_after_first_deck, coefs)
 
   logging.debug(f"scatter_data: {scatter_data}, {size}")
+  frontloaded_damage = get_frontloaded_damage(average_damage)
+  scaling_damage = str(tuple([f"{cc:.1f}" for cc in coefs[1:]])).replace("'", "")
   print(f"average: {average_damage}")
-  print(f"FRONTLOADED DAMAGE {get_frontloaded_damage(average_damage):.2f}")
-  print(f"SCALING DAMAGE: " + str([f"{cc:.1f}" for cc in coefs[1:]]))
+  print(f"FRONTLOADED DAMAGE {frontloaded_damage:.2f}")
+  print(f"SCALING DAMAGE: {scaling_damage}")
   fig, ax = plt.subplots()
   plt.plot(x_after_first_deck, ffit, color='green')
 
   ax.scatter(x, average_damage, s=4, color='red', marker="_")
 
   ax.scatter('turns', 'damage', s=size, data=scatter_data)
+  ax.set_title(f'DAMAGE: {frontloaded_damage:.2f} / {scaling_damage}', loc='right')
 
+  ax.set_xlabel(f'turn')
+  ax.set_ylabel('damage')
   plt.show()
 
 if __name__ == "__main__":
