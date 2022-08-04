@@ -73,6 +73,15 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([8*2, 8*3, 8*3], self.monster.get_damage())
 
+    def test_play_turn_strength_multiplier(self):
+        cards = [Card.INFLAME] + [Card.STRIKE] * 3 + [Card.LIMIT_BREAK_PLUS]
+        player = Player(Deck(cards))
+        player.play_turn(self.monster)
+        player.play_turn(self.monster)
+        player.play_turn(self.monster)
+
+        self.assertEqual([6+4, 2*(6+8), 2*(6+16)], self.monster.get_damage())
+
     def test_play_turn_flex(self):
         cards = [Card.FLEX] + [Card.STRIKE] * 9
         player = Player(Deck(cards, shuffle=False))
@@ -89,11 +98,13 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual([10], self.monster.get_damage())
 
     def test_play_turn_exhaustible(self):
-        cards = [Card.DEMON_FORM] + [Card.STRIKE] * 3 + [Card.BASH]
+        cards = [Card.DEMON_FORM] + [Card.BASH] + [Card.DEFEND] * 3
         deck = Deck(cards)
-        Player(deck).play_turn(self.monster)
+        Player(deck, energy=5).play_turn(self.monster)
 
         self.assertNotIn(Card.DEMON_FORM, deck.discards)
+        # Exhausting DEMON_FORM should not affect BASH
+        self.assertEqual([8], self.monster.get_damage())
 
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4

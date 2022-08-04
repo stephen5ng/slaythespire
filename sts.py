@@ -21,6 +21,7 @@ class CardArgs(namedtuple('CardArgs', (
     'strength_buff '
     'strength_gain '
     'strength_loss '
+    'strength_multiplier '
         'vulnerable'))):
     def __new__(cls, energy,
                 attack=0,
@@ -30,6 +31,7 @@ class CardArgs(namedtuple('CardArgs', (
                 strength_buff=0,
                 strength_gain=0,
                 strength_loss=0,
+                strength_multiplier=1,
                 vulnerable=0):
         return super().__new__(cls, energy,
                                attack,
@@ -39,6 +41,7 @@ class CardArgs(namedtuple('CardArgs', (
                                strength_buff,
                                strength_gain,
                                strength_loss,
+                               strength_multiplier,
                                vulnerable)
 
     def __getnewargs__(self):
@@ -49,6 +52,7 @@ class CardArgs(namedtuple('CardArgs', (
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_buff,
+                self.strength_multiplier,
                 self.vulnerable)
 
 
@@ -60,6 +64,7 @@ class Card(CardArgs, Enum):
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
     HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)
     INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
+    LIMIT_BREAK_PLUS = CardArgs(1, strength_multiplier=2)
     STRIKE = CardArgs(1, attack=6)
     TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
 
@@ -122,7 +127,7 @@ class Monster:
         self._damage.append(0)
 
     def defend(self, attack):
-        self._damage[self._turn] += attack * (1.5 if self._vulnerable else 1.0)
+        self._damage[self._turn] += int(attack * (1.5 if self._vulnerable else 1.0))
         logging.debug(
             f"{self._turn}: MONSTER TAKING DAMAGE: vuln: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
 
@@ -141,8 +146,9 @@ class Monster:
 
 
 class Player:
-    def __init__(self, deck: Deck) -> None:
+    def __init__(self, deck: Deck, energy=3) -> None:
         self.deck = deck
+        self.energy = energy
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
@@ -150,17 +156,21 @@ class Player:
     def _play_hand(self, hand: list, monster: Monster):
         # Sort by descending energy (except 0-cost cards come first), then put exhaustibles first.
         hand.sort(reverse=True, key=lambda c: (
-            c.energy if c.energy else 1000, c.exhaustible))
+            c.energy if c.energy else 1000, c.exhaustible, c.strength_multiplier))
 
-        logging.debug(f"HAND: {hand}")
+        logging.info(f"HAND: {hand}")
 
-        energy = 3
+        energy = self.energy
         played_cards = []
-        for card in hand:
+
+        # Copy hand so that the original hand can be mutated (cards can be exhausted).
+        for card in hand.copy():
+            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+
             if card.energy and energy < card.energy:
                 continue
 
-            if card.attack or card.strength_gain or card.strength_buff:
+            if card.attack or card.strength_buff or card.strength_gain or card.strength_multiplier > 1:
                 logging.debug(f"playing card: {card}")
                 played_cards.append(card)
                 energy -= card.energy
@@ -175,6 +185,7 @@ class Player:
                 self.strength_buff += card.strength_buff
                 self.strength += card.strength_gain
                 self.post_strength_debuff_once += card.strength_loss
+                self.strength *= card.strength_multiplier
 
                 if card.exhaustible:
                     hand.remove(card)
@@ -197,13 +208,13 @@ class Player:
             self.post_strength_debuff_once = 0
 
         monster.end_turn()
+        logging.info(f"damage: {monster.get_damage()}")
 
     def play_game(self, monster: Monster, turns: int):
         for turn in range(turns):
             self.play_turn(monster)
         # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
-
-        logging.info(f"damage: {monster.get_damage()}")
+        # logging.info(f"damage: {monster.get_damage()}")
 
 
 def get_frontloaded_damage(damage: list):
