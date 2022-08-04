@@ -5,10 +5,12 @@ from string import capwords
 import sts
 from sts import Card, Deck, Monster, Player
 
+
 class TestCards(unittest.TestCase):
     def test_card(self):
         self.assertEqual(Card.DEFEND.attack, 0)
         self.assertEqual(Card.STRIKE.attack, 6)
+
 
 class TestPlayer(unittest.TestCase):
     def setUp(self):
@@ -29,7 +31,7 @@ class TestPlayer(unittest.TestCase):
 
         self.assertEqual([24], self.monster.get_damage())
         self.assertEqual([
-            Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE, 
+            Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE,
             Card.ANGER], deck.discards)
 
     def test_play_turn_vulnerable(self):
@@ -83,12 +85,13 @@ class TestPlayer(unittest.TestCase):
         Player(Deck(cards)).play_game(self.monster, 1)
 
         self.assertEqual([18], self.monster.get_damage())
-    
+
     def test_multi_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         Player(Deck(cards)).play_game(self.monster, 2)
 
         self.assertEqual([18, 18], self.monster.get_damage())
+
 
 class TestMonster(unittest.TestCase):
     def test_defend(self):
@@ -115,6 +118,7 @@ class TestMonster(unittest.TestCase):
         monster.end_turn()
 
         self.assertEqual([12, 12, 8], monster.get_damage())
+
 
 class TestDeck(unittest.TestCase):
     def test_empty_deck(self):
@@ -171,6 +175,7 @@ class TestDeck(unittest.TestCase):
 
         cards = deck.deal_multi(1)
         self.assertEqual(0, len(cards))
+
 
 if __name__ == '__main__':
     unittest.main()
