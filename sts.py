@@ -37,6 +37,7 @@ class CardArgs(namedtuple('CardArgs',
                 self.vulnerable)
 
 class Card(CardArgs, Enum):
+  ANGER = CardArgs(0, attack=6)
   BASH = CardArgs(2, attack=8, vulnerable=2)
   DEFEND = CardArgs(1)
   DEMON_FORM = CardArgs(3, exhaustible=True, strength_gain_buff=2)
@@ -116,11 +117,15 @@ class Player:
     self.strength_gain_buff = 0
 
   def _play_hand(self, hand: list, monster: Monster):
+    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
+
+    logging.debug(f"HAND: {hand}")
+
     energy = 3
     played_cards = []
     for card in hand:
-      if energy < card.energy:
-        break
+      if card.energy and energy < card.energy:
+        continue
 
       if card.attack or card.strength_gain or card.strength_gain_buff:
         logging.debug(f"playing card: {card}")
@@ -147,17 +152,13 @@ class Player:
 
   def play_turn(self, monster: Monster):
     monster.begin_turn()
-
-    self.strength += self.strength_gain_buff    
-    
+    self.strength += self.strength_gain_buff        
     hand = self.deck.deal_multi(5)
-    hand.sort(reverse=True, key=lambda c: (c.energy, c.exhaustible))
-    logging.debug(f"HAND: {hand}")
+
     played_cards = self._play_hand(hand, monster)
+    logging.info(f"Played: {played_cards}")
 
     self.deck.discard(hand)    
-    dmg = monster.get_damage()
-    logging.info(f"Played: {played_cards}")
     monster.end_turn()
 
   def play_game(self, monster: Monster, turns: int):

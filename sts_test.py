@@ -22,6 +22,13 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual([18], self.monster.get_damage())
         self.assertEqual(5, len(cards), msg='input cards was mutated')
 
+    def test_play_turn_no_energy(self):
+        cards = [Card.ANGER] + [Card.STRIKE] * 4
+        deck = Deck(cards)
+        Player(deck).play_turn(self.monster)
+
+        self.assertEqual([24], self.monster.get_damage())
+
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
         Player(Deck(cards)).play_turn(self.monster)
