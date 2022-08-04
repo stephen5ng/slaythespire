@@ -50,6 +50,10 @@ class Card(CardArgs, Enum):
 
   def __repr__(self):
     return self.name
+  
+  def extra_action(self, deck):
+    if self.name == 'ANGER':
+      deck.discards.append(Card.ANGER)
 
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
 class Deck:
@@ -148,6 +152,8 @@ class Player:
         if card.exhaustible:
           hand.remove(card)
 
+        card.extra_action(self.deck)
+
     return played_cards
 
   def play_turn(self, monster: Monster):
@@ -203,7 +209,7 @@ def main():
   trials = 1000
   cum_damage = []
   damage = []
-  cards = [Card.DEFEND]*4 + [Card.STRIKE]*4 + [Card.HEAVY_BLADE] + [Card.BASH] + [Card.DEMON_FORM]
+  cards = [Card.DEFEND]*4 + [Card.STRIKE]*4 + [Card.BASH] + [Card.ANGER]
   for trial in range(trials):
     player = Player(Deck(cards, seed=trial))
     monster = Monster()

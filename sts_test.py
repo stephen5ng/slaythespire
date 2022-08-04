@@ -28,6 +28,9 @@ class TestPlayer(unittest.TestCase):
         Player(deck).play_turn(self.monster)
 
         self.assertEqual([24], self.monster.get_damage())
+        self.assertEqual([
+            Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE, 
+            Card.ANGER], deck.discards)
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
