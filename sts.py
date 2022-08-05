@@ -72,6 +72,7 @@ class CardArgs(namedtuple('CardArgs', (
 class Card(CardArgs, Enum):
     ANGER = CardArgs(0, attack=6)
     BASH = CardArgs(2, attack=8, vulnerable=2)
+    BASH_PLUS = CardArgs(2, attack=10, vulnerable=3)
     DEFEND = CardArgs(1, block=5)
     DEMON_FORM = CardArgs(3, exhaustible=True, strength_buff=2)
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
@@ -79,6 +80,7 @@ class Card(CardArgs, Enum):
     INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
     LIMIT_BREAK_PLUS = CardArgs(1, strength_multiplier=2)
     PERFECTED_STRIKE = CardArgs(2, attack=6, strike_bonus=2)
+    PERFECTED_STRIKE_PLUS = CardArgs(2, attack=6, strike_bonus=3)
     POMMEL_STRIKE = CardArgs(1, attack=8, draw_card=1)
     POMMEL_STRIKE_NO_DRAW = CardArgs(1, attack=8, draw_card=0)
     STRIKE = CardArgs(1, attack=6)
