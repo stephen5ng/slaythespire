@@ -17,6 +17,7 @@ class CardArgs(namedtuple('CardArgs', (
     'attack '
     'attack_multiplier '
     'attack_strength_multiplier '
+    'block '
     'exhaustible '
     'strength_buff '
     'strength_gain '
@@ -27,6 +28,7 @@ class CardArgs(namedtuple('CardArgs', (
                 attack=0,
                 attack_multiplier=1,
                 attack_strength_multiplier=1,
+                block=0,
                 exhaustible=False,
                 strength_buff=0,
                 strength_gain=0,
@@ -37,6 +39,7 @@ class CardArgs(namedtuple('CardArgs', (
                                attack,
                                attack_multiplier,
                                attack_strength_multiplier,
+                               block,
                                exhaustible,
                                strength_buff,
                                strength_gain,
@@ -49,6 +52,7 @@ class CardArgs(namedtuple('CardArgs', (
                 self.attack,
                 self.attack_multiplier,
                 self.attack_strength_multiplier,
+                self.block,
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_buff,
@@ -59,7 +63,7 @@ class CardArgs(namedtuple('CardArgs', (
 class Card(CardArgs, Enum):
     ANGER = CardArgs(0, attack=6)
     BASH = CardArgs(2, attack=8, vulnerable=2)
-    DEFEND = CardArgs(1)
+    DEFEND = CardArgs(1, block=5)
     DEMON_FORM = CardArgs(3, exhaustible=True, strength_buff=2)
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
     HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)
@@ -76,6 +80,9 @@ class Card(CardArgs, Enum):
 
     def is_attack(self):
         return bool(self.attack or self.strength_buff or self.strength_gain or self.strength_multiplier > 1),
+
+    def is_defend(self):
+        return bool(self.block),
 
     def extra_action(self, deck):
         if self.name == 'ANGER':
@@ -149,22 +156,26 @@ class Monster:
         return self._damage
 
 
-def attack_sort_key(c: Card):
-    k = (c.is_attack(),
-         c.energy if c.energy else 1000, c.exhaustible, c.strength_gain, c.strength_multiplier)
-    logging.debug(f"attack_sort_key: {c}, {k}")
-    return k
-
-
 class Player:
+
     def __init__(self, deck: Deck, energy=3) -> None:
         self.deck = deck
         self.energy = energy
+
+        self.block = 0
+        self.blocks = []
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
     def _play_hand(self, hand: list, monster: Monster):
+
+        def attack_sort_key(c: Card):
+            k = (c.is_attack(),
+                 c.energy if c.energy else 1000, c.exhaustible, c.strength_gain, c.strength_multiplier)
+            logging.debug(f"attack_sort_key: {c}, {k}")
+            return k
+
         hand.sort(reverse=True, key=attack_sort_key)
 
         logging.info(f"HAND: {hand}")
@@ -190,6 +201,7 @@ class Player:
             if card.vulnerable:
                 monster.vulnerable(card.vulnerable)
 
+            self.block += card.block
             self.strength_buff += card.strength_buff
             self.strength += card.strength_gain
             self.post_strength_debuff_once += card.strength_loss
@@ -200,11 +212,13 @@ class Player:
 
             card.extra_action(self.deck)
 
+        self.blocks.append(self.block)
         return played_cards
 
     def play_turn(self, monster: Monster):
         monster.begin_turn()
         self.strength += self.strength_buff
+        self.block = 0
         hand = self.deck.deal_multi(5)
 
         played_cards = self._play_hand(hand, monster)
@@ -225,6 +239,64 @@ class Player:
         # logging.info(f"damage: {monster.get_damage()}")
 
 
+class DefendingPlayer(Player):
+    def __init__(self, deck: Deck, energy=3) -> None:
+        super().__init__(deck, energy)
+
+    def _play_hand(self, hand: list, monster: Monster):
+
+        def _sort_key(c: Card):
+            k = (c.is_defend(),
+                 c.energy if c.energy else 1000, c.exhaustible)
+            logging.debug(f"_sort_key: {c}, {k}")
+            return k
+
+        hand.sort(reverse=True, key=_sort_key)
+
+        logging.info(f"HAND: {hand}")
+
+        energy = self.energy
+        played_cards = []
+
+        # Copy hand so that the original hand can be mutated (cards can be exhausted).
+        for card in hand.copy():
+            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+
+            if card.energy and energy < card.energy:
+                continue
+
+            logging.debug(f"playing card: {card}")
+            played_cards.append(card)
+            energy -= card.energy
+
+            self.block += card.block
+
+            if card.exhaustible:
+                hand.remove(card)
+
+            card.extra_action(self.deck)
+
+        return played_cards
+
+    def play_turn(self, monster: Monster):
+        monster.begin_turn()
+        hand = self.deck.deal_multi(5)
+
+        played_cards = self._play_hand(hand, monster)
+        logging.info(f"Played: {played_cards}")
+
+        self.deck.discard(hand)
+
+        monster.end_turn()
+        logging.info(f"damage: {monster.get_damage()}")
+
+    def play_game(self, monster: Monster, turns: int):
+        for turn in range(turns):
+            self.play_turn(monster)
+        # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
+        # logging.info(f"damage: {monster.get_damage()}")
+
+
 def get_frontloaded_damage(damage: list):
     return (damage[0] +
             damage[1]/2.0 +
@@ -232,27 +304,27 @@ def get_frontloaded_damage(damage: list):
             damage[3]/8.0)
 
 
-def create_scatter_plot_data(plot_data):
+def create_scatter_plot_data(plot_data, attribute):
     trials = len(plot_data)
     plot_data = numpy.swapaxes(plot_data, 0, 1)
     scatter_data = {}
     scatter_data['turns'] = []
-    scatter_data['damage'] = []
+    scatter_data[attribute] = []
     size = []
     logging.debug(f"plot_data: {plot_data}")
     for turn in range(len(plot_data)):
-        turn_damage = plot_data[turn]
-        r = range(int(min(turn_damage)), 2+int(max(turn_damage)))
-        hist = numpy.histogram(turn_damage, bins=r)
+        turn_attrib = plot_data[turn]
+        r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
+        hist = numpy.histogram(turn_attrib, bins=r)
         for bin_count, bin in zip(*hist):
             if bin_count:
                 scatter_data['turns'].append(turn)
-                scatter_data['damage'].append(bin)
+                scatter_data[attribute].append(bin)
                 size.append(bin_count/(trials/100.0))
-        if turn == 0:
-            logging.debug(f"TURN0 hist: {hist}")
-            logging.debug(f"TURN0 size: {size}")
-            logging.debug(f"TURN0 scatter_data {scatter_data}")
+        # if turn == 0:
+        #     logging.debug(f"TURN0 hist: {hist}")
+        #     logging.debug(f"TURN0 size: {size}")
+        #     logging.debug(f"TURN0 scatter_data {scatter_data}")
 
     return scatter_data, size
 
@@ -290,15 +362,17 @@ def main():
     trials = 1000
     cum_damage = []
     damage = []
+    block = []
     for trial in range(trials):
         player = Player(Deck(cards, seed=trial))
         monster = Monster()
         player.play_game(monster, turns)
         damage.append(monster.get_damage())
         cum_damage.append(numpy.cumsum(monster.get_damage()))
+        block.append(player.blocks)
 
     logging.debug(f"damage: {damage}")
-    scatter_data, size = create_scatter_plot_data(damage)
+    print(f"block: {block}")
 
     average_damage = numpy.average(damage, axis=0)
 
@@ -315,7 +389,6 @@ def main():
     log_coefs, log_residuals, log_ffit = curve_fit(
         x_after_first_deck, log_average_damage[turns_after_first_deck:])
 
-    logging.debug(f"scatter_data: {scatter_data}, {size}")
     frontloaded_damage = get_frontloaded_damage(average_damage)
     if abs(residuals) >= 100:
         scaling_damage = f"O({log_coefs[1]:.2f}*2^n)"
@@ -329,23 +402,33 @@ def main():
         f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
     print(f"RESIDUALS: r: {residuals}, rlog: {log_residuals}")
 
-    fig, ax = plt.subplots()
+    fig, (ax, ax1) = plt.subplots(ncols=2)  # type: ignore
     if abs(residuals) < 100:
-        plt.plot(x_after_first_deck, ffit, color='green')
+        ax.plot(x_after_first_deck, ffit, color='green')
     else:
-        plt.plot(x_after_first_deck, [math.pow(2, y)
-                 for y in log_ffit], color='purple')
+        ax.plot(x_after_first_deck, [math.pow(2, y)
+                                     for y in log_ffit], color='purple')
 
     ax.scatter(x, average_damage, s=4, color='red', marker="_")
     if abs(residuals) > 100:
         ax.scatter(x, log_average_damage, s=4, color='purple', marker="_")
-    ax.scatter('turns', 'damage', s=size, data=scatter_data)
+
+    damage_scatter_data, size = create_scatter_plot_data(damage, 'damage')
+    logging.debug(f"scatter_data: {damage_scatter_data}, {size}")
+    ax.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+
+    block_scatter_data, size = create_scatter_plot_data(block, 'block')
+    ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
 
     ax.set_title(
         f'DAMAGE: [{frontloaded_damage:.2f}hp, {scaling_damage}]', loc='right')
 
-    ax.set_xlabel(f'turn')
+    ax.set_xlabel('turn')
     ax.set_ylabel('damage')
+
+    ax1.set_xlabel('turn')
+    ax1.set_ylabel('block')
+
     plt.show()
 
 
