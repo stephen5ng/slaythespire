@@ -140,6 +140,7 @@ class Player:
 
         self.block = 0
         self.blocks = []
+        self.played_cards = []
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
@@ -206,7 +207,6 @@ class Player:
 
         self.blocks.append(self.block)
 
-        logging.debug(f"discarding remaining cards in hand: {self.deck.hand}")
         self.deck.discard(self.deck.hand)
 
         return played_cards
@@ -218,8 +218,8 @@ class Player:
         self.block = 0
 
         self.deck.deal(5)
-        played_cards = self._play_hand(monster)
-        logging.info(f"Played: {played_cards}")
+        self.played_cards.append(self._play_hand(monster))
+        logging.info(f"Played: {self.played_cards[-1]}")
 
         if self.post_strength_debuff_once:
             self.strength -= self.post_strength_debuff_once
@@ -360,6 +360,8 @@ def main():
     cum_damage = []
     damage = []
     block = []
+    best_game = [0, None]
+    worst_game = [sys.maxsize, None]
     for trial in range(trials):
         player = Player(Deck(cards, seed=trial))
         monster = Monster()
@@ -367,10 +369,18 @@ def main():
         damage.append(monster.get_damage())
         cum_damage.append(numpy.cumsum(monster.get_damage()))
         block.append(player.blocks)
+        total_damage = numpy.sum(monster.get_damage())
+        # print(f"checking: {total_damage}, {best_play[0]}")
+        if total_damage > best_game[0]:
+            best_play = [total_damage, player.played_cards]
+        if total_damage < worst_game[0]:
+            worst_play = [total_damage, player.played_cards]
+
 
     logging.debug(f"damage: {damage}")
     logging.debug(f"block: {block}")
-
+    print(f"BEST GAME: {best_game}")
+    print(f"WORST GAME: {worst_game}")
     average_damage = numpy.average(damage, axis=0)
 
     log_average_damage = [math.log(d, 2) for d in average_damage]
