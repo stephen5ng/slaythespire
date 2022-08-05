@@ -182,14 +182,7 @@ class Player:
                 self.deck.discard([card_to_play])
 
             if card_to_play.attack:
-                strike_bonus = 0
-                if card_to_play.strike_bonus:
-                    cards_with_strike = len(
-                        [c for c in self.deck.all_cards() if 'STRIKE' in str(c)])
-                    strike_bonus = (
-                        card_to_play.strike_bonus * cards_with_strike)
-                    logging.debug(
-                        f"cards with strike: {cards_with_strike}, strike bonus: {strike_bonus}")
+                strike_bonus = card_to_play.calculate_strike_bonus(self.deck)
                 damage = (card_to_play.attack_multiplier *
                           (card_to_play.attack + strike_bonus + self.strength * card_to_play.attack_strength_multiplier))
                 monster.defend(damage)

@@ -1,6 +1,9 @@
 
 from collections import namedtuple
 from enum import Enum
+import logging
+
+logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.DEBUG)
 
 
 class CardArgs(namedtuple('CardArgs', (
@@ -91,6 +94,18 @@ class Card(CardArgs, Enum):
     def extra_action(self, deck):
         if self.name == 'ANGER':
             deck.add_to_discards([Card.ANGER])
+
+    def calculate_strike_bonus(self, deck):
+        if self.strike_bonus == 0:
+            return 0
+
+        cards_with_strike = len(
+            [c for c in deck.all_cards() if 'STRIKE' in str(c)])
+        strike_bonus = (
+            self.strike_bonus * cards_with_strike)
+        logging.debug(
+            f"cards with strike: {cards_with_strike}, strike bonus: {strike_bonus}")
+        return strike_bonus
 
 
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]
