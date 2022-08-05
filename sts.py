@@ -1,13 +1,14 @@
 import math
 import logging
 from re import S
+from types import NoneType
 import numpy
 import sys
 import matplotlib.pyplot as plt
 from enum import Enum
 from collections import namedtuple
 import numpy.polynomial.polynomial as poly
-from typing import Union
+from typing import List, Sequence, Union
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
@@ -168,15 +169,26 @@ class Player:
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
+    def select_card_to_play(self, energy, hand: List[Card]) -> Union[Card, None]:
+        # Removes selected card from hand.
+        for card in hand:
+            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+
+            if card.energy and energy < card.energy:
+                continue
+            hand.remove(card)
+            return card
+        return None
+
     def _play_hand(self, hand: list, monster: Monster):
 
-        def attack_sort_key(c: Card):
+        def _sort_key(c: Card):
             k = (c.is_attack(),
                  c.energy if c.energy else 1000, c.exhaustible, c.strength_gain, c.strength_multiplier)
             logging.debug(f"attack_sort_key: {c}, {k}")
             return k
 
-        hand.sort(reverse=True, key=attack_sort_key)
+        hand.sort(reverse=True, key=_sort_key)
 
         logging.info(f"HAND: {hand}")
 
@@ -184,33 +196,31 @@ class Player:
         played_cards = []
 
         # Copy hand so that the original hand can be mutated (cards can be exhausted).
-        for card in hand.copy():
-            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+        card_to_play = self.select_card_to_play(energy, hand)
+        while card_to_play:
+            logging.debug(f"playing card: {card_to_play}")
+            played_cards.append(card_to_play)
+            energy -= card_to_play.energy
 
-            if card.energy and energy < card.energy:
-                continue
+            if card_to_play.attack:
+                monster.defend(card_to_play.attack_multiplier *
+                               (card_to_play.attack + self.strength * card_to_play.attack_strength_multiplier))
 
-            logging.debug(f"playing card: {card}")
-            played_cards.append(card)
-            energy -= card.energy
+            if card_to_play.vulnerable:
+                monster.vulnerable(card_to_play.vulnerable)
 
-            if card.attack:
-                monster.defend(card.attack_multiplier *
-                               (card.attack + self.strength * card.attack_strength_multiplier))
+            self.block += card_to_play.block
+            self.strength_buff += card_to_play.strength_buff
+            self.strength += card_to_play.strength_gain
+            self.post_strength_debuff_once += card_to_play.strength_loss
+            self.strength *= card_to_play.strength_multiplier
 
-            if card.vulnerable:
-                monster.vulnerable(card.vulnerable)
+            if not card_to_play.exhaustible:
+                self.deck.discard([card_to_play])
 
-            self.block += card.block
-            self.strength_buff += card.strength_buff
-            self.strength += card.strength_gain
-            self.post_strength_debuff_once += card.strength_loss
-            self.strength *= card.strength_multiplier
+            card_to_play.extra_action(self.deck)
 
-            if card.exhaustible:
-                hand.remove(card)
-
-            card.extra_action(self.deck)
+            card_to_play = self.select_card_to_play(energy, hand)
 
         self.blocks.append(self.block)
         return played_cards
@@ -224,7 +234,9 @@ class Player:
         played_cards = self._play_hand(hand, monster)
         logging.info(f"Played: {played_cards}")
 
+        logging.debug(f"discarding {hand}")
         self.deck.discard(hand)
+
         if self.post_strength_debuff_once:
             self.strength -= self.post_strength_debuff_once
             self.post_strength_debuff_once = 0
@@ -239,62 +251,63 @@ class Player:
         # logging.info(f"damage: {monster.get_damage()}")
 
 
-class DefendingPlayer(Player):
-    def __init__(self, deck: Deck, energy=3) -> None:
-        super().__init__(deck, energy)
+# class DefendingPlayer(Player):
+#     def __init__(self, deck: Deck, energy=3) -> None:
+#         super().__init__(deck, energy)
 
-    def _play_hand(self, hand: list, monster: Monster):
+#     def _play_hand(self, hand: list, monster: Monster):
 
-        def _sort_key(c: Card):
-            k = (c.is_defend(),
-                 c.energy if c.energy else 1000, c.exhaustible)
-            logging.debug(f"_sort_key: {c}, {k}")
-            return k
+#         def _sort_key(c: Card):
+#             k = (c.is_defend(),
+#                  c.energy if c.energy else 1000, c.exhaustible)
+#             logging.debug(f"_sort_key: {c}, {k}")
+#             return k
 
-        hand.sort(reverse=True, key=_sort_key)
+#         hand.sort(reverse=True, key=_sort_key)
 
-        logging.info(f"HAND: {hand}")
+#         logging.info(f"HAND: {hand}")
 
-        energy = self.energy
-        played_cards = []
+#         energy = self.energy
+#         played_cards = []
 
-        # Copy hand so that the original hand can be mutated (cards can be exhausted).
-        for card in hand.copy():
-            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+#         # Copy hand so that the original hand can be mutated (cards can be exhausted).
+#         for card in hand.copy():
+#             logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
 
-            if card.energy and energy < card.energy:
-                continue
+#             if card.energy and energy < card.energy:
+#                 continue
 
-            logging.debug(f"playing card: {card}")
-            played_cards.append(card)
-            energy -= card.energy
+#             logging.debug(f"playing card: {card}")
+#             played_cards.append(card)
+#             energy -= card.energy
 
-            self.block += card.block
+#             self.block += card.block
 
-            if card.exhaustible:
-                hand.remove(card)
+#             if card.exhaustible:
+#                 hand.remove(card)
 
-            card.extra_action(self.deck)
+#             card.extra_action(self.deck)
 
-        return played_cards
+#         return played_cards
 
-    def play_turn(self, monster: Monster):
-        monster.begin_turn()
-        hand = self.deck.deal_multi(5)
+#     def play_turn(self, monster: Monster):
+#         monster.begin_turn()
+#         hand = self.deck.deal_multi(5)
 
-        played_cards = self._play_hand(hand, monster)
-        logging.info(f"Played: {played_cards}")
+#         played_cards = self._play_hand(hand, monster)
+#         logging.info(f"Played: {played_cards}")
 
-        self.deck.discard(hand)
+#         logging.debug(f"discarding {hand}")
+#         self.deck.discard(hand)
 
-        monster.end_turn()
-        logging.info(f"damage: {monster.get_damage()}")
+#         monster.end_turn()
+#         logging.info(f"damage: {monster.get_damage()}")
 
-    def play_game(self, monster: Monster, turns: int):
-        for turn in range(turns):
-            self.play_turn(monster)
-        # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
-        # logging.info(f"damage: {monster.get_damage()}")
+#     def play_game(self, monster: Monster, turns: int):
+#         for turn in range(turns):
+#             self.play_turn(monster)
+#         # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
+#         # logging.info(f"damage: {monster.get_damage()}")
 
 
 def get_frontloaded_damage(damage: list):
