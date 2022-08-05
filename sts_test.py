@@ -55,7 +55,7 @@ class TestPlayer(unittest.TestCase):
         Player(deck).play_turn(self.monster)
 
         self.assertEqual([22], self.monster.get_damage())
-    
+
     def test_play_turn_draw_card(self):
         cards = [Card.POMMEL_STRIKE] + [Card.STRIKE] * 4 + [Card.BASH]
         deck = Deck(cards)
@@ -163,17 +163,17 @@ class TestMonster(unittest.TestCase):
 class TestDeck(unittest.TestCase):
     def test_empty_deck(self):
         deck = Deck([])
-        self.assertEqual([], deck.deal_multi())
+        self.assertEqual([], deck.deal())
 
     def test_deal_single_card(self):
         deck = Deck([Card.STRIKE])
-        card = deck.deal_multi()[0]
+        card = deck.deal()[0]
 
         self.assertEqual(6, card.attack)
-        self.assertEqual([], deck.deal_multi())
+        self.assertEqual([], deck.deal())
 
         deck.discard([card])
-        self.assertEqual(6, deck.deal_multi()[0].attack)
+        self.assertEqual(6, deck.deal()[0].attack)
 
     def test_card_movement(self):
         deck = Deck([Card.STRIKE])
@@ -181,7 +181,7 @@ class TestDeck(unittest.TestCase):
         self.assertEqual(0, len(deck.hand))
         self.assertEqual(0, len(deck.discards))
 
-        cards = deck.deal_multi()
+        cards = deck.deal()
         self.assertEqual(0, len(deck.deck))
         self.assertEqual(1, len(deck.hand))
         self.assertEqual(0, len(deck.discards))
@@ -194,35 +194,35 @@ class TestDeck(unittest.TestCase):
     def test_multiple_cards(self):
         deck = Deck([Card.DEFEND, Card.STRIKE])
 
-        card0, card1 = deck.deal_multi(2)
-        self.assertEqual([], deck.deal_multi())
+        card0, card1 = deck.deal(2)
+        self.assertEqual([], deck.deal())
 
         self.assertEqual(0, card0.attack)
         self.assertEqual(6, card1.attack)
 
         deck.discard([card0, card1])
 
-        self.assertEqual(0, deck.deal_multi()[0].attack)
+        self.assertEqual(0, deck.deal()[0].attack)
 
     def test_seed(self):
         deck = Deck([Card.DEFEND, Card.STRIKE], seed=2)
 
-        card0, card1 = deck.deal_multi(2)
+        card0, card1 = deck.deal(2)
 
         self.assertEqual(6, card0.attack)
         self.assertEqual(0, card1.attack)
 
     def test_deal_multi(self):
         deck = Deck([Card.DEFEND, Card.STRIKE], seed=2)
-        cards = deck.deal_multi(1)
+        cards = deck.deal(1)
         self.assertEqual(1, len(cards))
         self.assertEqual(6, cards[0].attack)
 
-        cards = deck.deal_multi(2)
+        cards = deck.deal(2)
         self.assertEqual(1, len(cards))
         self.assertEqual(0, cards[0].attack)
 
-        cards = deck.deal_multi(1)
+        cards = deck.deal(1)
         self.assertEqual(0, len(cards))
 
 

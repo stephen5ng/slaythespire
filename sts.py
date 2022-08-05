@@ -44,7 +44,7 @@ class Deck:
         self.hand.append(dealt)
         return dealt
 
-    def deal_multi(self, count=1) -> List[Card]:
+    def deal(self, count=1) -> List[Card]:
         logging.debug(f"deal_multi: {self}")
 
         cards = []
@@ -187,7 +187,7 @@ class Player:
             self.post_strength_debuff_once += card_to_play.strength_loss
             self.strength *= card_to_play.strength_multiplier
             if card_to_play.draw_card:
-                cards = self.deck.deal_multi(card_to_play.draw_card)
+                cards = self.deck.deal(card_to_play.draw_card)
                 logging.info(f"drawing cards: {cards}")
                 self.deck.sort_hand(_sort_key)
 
@@ -208,7 +208,7 @@ class Player:
         self.strength += self.strength_buff
         self.block = 0
 
-        self.deck.deal_multi(5)
+        self.deck.deal(5)
         played_cards = self._play_hand(monster)
         logging.info(f"Played: {played_cards}")
 
