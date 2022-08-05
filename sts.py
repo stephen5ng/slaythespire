@@ -127,7 +127,8 @@ class Monster:
         self._damage.append(0)
 
     def defend(self, attack):
-        self._damage[self._turn] += int(attack * (1.5 if self._vulnerable else 1.0))
+        self._damage[self._turn] += int(attack *
+                                        (1.5 if self._vulnerable else 1.0))
         logging.debug(
             f"{self._turn}: MONSTER TAKING DAMAGE: vuln: {self._vulnerable}: {attack} -> {self._damage[self._turn]}")
 
@@ -149,7 +150,7 @@ class Player:
     def __init__(self, deck: Deck, energy=3) -> None:
         self.deck = deck
         self.energy = energy
-        self.strength = 0
+        self.strength = 1
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
@@ -264,13 +265,21 @@ def format_scaling_damage(coefs):
     return f"O({ret})"
 
 
+def curve_fit(x, y):
+    pret = poly.polyfit(x, y, 2, full=True)
+    coefs = pret[0]
+    residuals = pret[1][0]
+    fit = poly.polyval(x, coefs)
+    return coefs, residuals, fit
+
+
 def main():
     if len(sys.argv) > 1:
         cards = eval(sys.argv[1])
     else:
         cards = IRONCLAD_STARTER
 
-    turns = 40
+    turns = 20
     trials = 1000
     cum_damage = []
     damage = []
@@ -285,24 +294,43 @@ def main():
     scatter_data, size = create_scatter_plot_data(damage)
 
     average_damage = numpy.average(damage, axis=0)
+
+    log_average_damage = [math.log(d, 2) for d in average_damage]
     turns_after_first_deck = 2+int(len(cards) / 5)
     x = list(range(turns))
     x_after_first_deck = x[turns_after_first_deck:]
-    coefs = poly.polyfit(x_after_first_deck,
-                         average_damage[turns_after_first_deck:], 3)
-    ffit = poly.polyval(x_after_first_deck, coefs)
+
+    print("curvefit")
+    coefs, residuals, ffit = curve_fit(
+        x_after_first_deck, average_damage[turns_after_first_deck:])
+
+    print("curvefit log")
+    log_coefs, log_residuals, log_ffit = curve_fit(
+        x_after_first_deck, log_average_damage[turns_after_first_deck:])
 
     logging.debug(f"scatter_data: {scatter_data}, {size}")
     frontloaded_damage = get_frontloaded_damage(average_damage)
-    scaling_damage = format_scaling_damage(coefs)
+    if abs(residuals) >= 100:
+        scaling_damage = f"O({log_coefs[1]:.2f}*2^n)"
+    else:
+        scaling_damage = format_scaling_damage(coefs)
 
     print(f"average: {average_damage}")
+    print(f"log_average: {log_average_damage}")
     print(f"FRONTLOADED DAMAGE: {frontloaded_damage:.2f}")
-    print(f"SCALING DAMAGE: {scaling_damage}")
+    print(
+        f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
+    print(f"RESIDUALS: r: {residuals}, rlog: {log_residuals}")
+
     fig, ax = plt.subplots()
-    plt.plot(x_after_first_deck, ffit, color='green')
+    if abs(residuals) < 100:
+        plt.plot(x_after_first_deck, ffit, color='green')
+    else:
+        plt.plot(x_after_first_deck, [math.pow(2, y) for y in log_ffit], color='purple')
 
     ax.scatter(x, average_damage, s=4, color='red', marker="_")
+    if abs(residuals) > 100:
+        ax.scatter(x, log_average_damage, s=4, color='purple', marker="_")
     ax.scatter('turns', 'damage', s=size, data=scatter_data)
 
     ax.set_title(
