@@ -19,33 +19,39 @@ class CardArgs(namedtuple('CardArgs', (
     'attack_multiplier '
     'attack_strength_multiplier '
     'block '
+    'draw_card '
     'exhaustible '
     'strength_buff '
     'strength_gain '
     'strength_loss '
     'strength_multiplier '
+    'strike_bonus '
         'vulnerable'))):
     def __new__(cls, energy,
                 attack=0,
                 attack_multiplier=1,
                 attack_strength_multiplier=1,
                 block=0,
+                draw_card=0,
                 exhaustible=False,
                 strength_buff=0,
                 strength_gain=0,
                 strength_loss=0,
                 strength_multiplier=1,
+                strike_bonus=0,
                 vulnerable=0):
         return super().__new__(cls, energy,
                                attack,
                                attack_multiplier,
                                attack_strength_multiplier,
                                block,
+                               draw_card,
                                exhaustible,
                                strength_buff,
                                strength_gain,
                                strength_loss,
                                strength_multiplier,
+                               strike_bonus,
                                vulnerable)
 
     def __getnewargs__(self):
@@ -54,10 +60,12 @@ class CardArgs(namedtuple('CardArgs', (
                 self.attack_multiplier,
                 self.attack_strength_multiplier,
                 self.block,
+                self.draw_card,
                 self.exhaustible,
                 self.strength_gain,
                 self.strength_buff,
                 self.strength_multiplier,
+                self.strike_bonus,
                 self.vulnerable)
 
 
@@ -70,6 +78,9 @@ class Card(CardArgs, Enum):
     HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)
     INFLAME = CardArgs(1, exhaustible=True, strength_gain=2)
     LIMIT_BREAK_PLUS = CardArgs(1, strength_multiplier=2)
+    PERFECTED_STRIKE = CardArgs(2, attack=6, strike_bonus=2)
+    POMMEL_STRIKE = CardArgs(1, attack=8, draw_card=1)
+    POMMEL_STRIKE_NO_DRAW = CardArgs(1, attack=8, draw_card=0)
     STRIKE = CardArgs(1, attack=6)
     TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
 
@@ -97,35 +108,70 @@ class Deck:
     def __init__(self, cards, seed=1, shuffle=True):
         self.deck = cards.copy()
         self.discards = []
+        self.hand = []
+        self.exhausted = []
         numpy.random.seed(seed=seed)
         if shuffle:
             numpy.random.shuffle(self.deck)
         logging.info(f"Deck: {self.deck}")
 
-    def deal(self) -> Card:
+    def _deal(self) -> Union[Card, None]:
+        logging.debug(f"deal: {self}")
+
         if not self.deck:
             if self.discards:
-                self.deck = self.discards
-                logging.info("shuffling...")
-                numpy.random.shuffle(self.deck)
+                self.deck = self.discards.copy()
                 self.discards = []
+                logging.info(f"shuffling... {self}")
+                numpy.random.shuffle(self.deck)
 
         if not self.deck:
-            return None  # type: ignore
-        return self.deck.pop(0)
+            return None
+        dealt = self.deck.pop(0)
+        self.hand.append(dealt)
+        return dealt
 
-    def deal_multi(self, count):
-        ret = []
+
+    def deal_multi(self, count=1) -> List[Card]:
+        logging.debug(f"deal_multi: {self}")
+
+        cards = []
         while count > 0:
-            card = self.deal()
+            card = self._deal()
             if not card:
-                return ret
+                return cards
             count -= 1
-            ret.append(card)
-        return ret
+            cards.append(card)
+        
+        logging.info(f"dealt {self}")
+
+        return cards
 
     def discard(self, cards):
+        cards = cards.copy()
+        logging.debug(f"about to discard {cards}, now {self}")
         self.discards.extend(cards)
+        logging.debug(f"extended {cards}, now {self}")
+
+        for card in cards:
+            self.hand.remove(card)
+            logging.debug(f"just discarded {card}, now {self}")
+        logging.debug(f"discarded {cards}, now {self}")
+    
+    def exhaust(self, cards):
+        for card in cards:
+            self.hand.remove(card)
+        self.exhausted.extend(cards)
+    
+    def all_cards(self) -> List[Card]:
+        # does not include exhaust
+        return self.hand + self.deck + self.discards
+
+    def sort_hand(self, key):
+        self.hand.sort(reverse=True, key=key)
+
+    def __str__(self):
+        return f"hand: {self.hand}, discards: {self.discards}, exhausted: {self.exhausted}, deck: {self.deck}"
 
 
 class Monster:
@@ -169,42 +215,55 @@ class Player:
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
-    def select_card_to_play(self, energy, hand: List[Card]) -> Union[Card, None]:
+    def select_card_to_play(self, energy) -> Union[Card, None]:
         # Removes selected card from hand.
-        for card in hand:
-            logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
+        for card in self.deck.hand:
+            logging.debug(f"energy: {energy} looking at card: {card} / {self.deck.hand}")
 
             if card.energy and energy < card.energy:
                 continue
-            hand.remove(card)
             return card
         return None
 
-    def _play_hand(self, hand: list, monster: Monster):
+    def _play_hand(self, monster: Monster):
 
         def _sort_key(c: Card):
             k = (c.is_attack(),
-                 c.energy if c.energy else 1000, c.exhaustible, c.strength_gain, c.strength_multiplier)
+                 c.energy if c.energy else 1000,
+                 c.exhaustible,
+                 c.strength_gain,
+                 c.strength_multiplier,
+                 c.attack)
             logging.debug(f"attack_sort_key: {c}, {k}")
             return k
 
-        hand.sort(reverse=True, key=_sort_key)
-
-        logging.info(f"HAND: {hand}")
+        self.deck.sort_hand(_sort_key)
 
         energy = self.energy
         played_cards = []
 
-        # Copy hand so that the original hand can be mutated (cards can be exhausted).
-        card_to_play = self.select_card_to_play(energy, hand)
+        card_to_play = self.select_card_to_play(energy)
         while card_to_play:
             logging.debug(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
+            if card_to_play.exhaustible:
+                self.deck.exhaust([card_to_play])
+            else:
+                self.deck.discard([card_to_play])
 
             if card_to_play.attack:
-                monster.defend(card_to_play.attack_multiplier *
-                               (card_to_play.attack + self.strength * card_to_play.attack_strength_multiplier))
+                strike_bonus = 0
+                if card_to_play.strike_bonus:
+                    cards_with_strike = len(
+                        [c for c in self.deck.all_cards() if 'STRIKE' in str(c)])
+                    strike_bonus = (
+                        card_to_play.strike_bonus * cards_with_strike)
+                    logging.debug(
+                        f"cards with strike: {cards_with_strike}, strike bonus: {strike_bonus}")
+                damage = (card_to_play.attack_multiplier *
+                          (card_to_play.attack + strike_bonus + self.strength * card_to_play.attack_strength_multiplier))
+                monster.defend(damage)
 
             if card_to_play.vulnerable:
                 monster.vulnerable(card_to_play.vulnerable)
@@ -214,28 +273,31 @@ class Player:
             self.strength += card_to_play.strength_gain
             self.post_strength_debuff_once += card_to_play.strength_loss
             self.strength *= card_to_play.strength_multiplier
-
-            if not card_to_play.exhaustible:
-                self.deck.discard([card_to_play])
+            if card_to_play.draw_card:
+                cards = self.deck.deal_multi(card_to_play.draw_card)
+                logging.info(f"drawing cards: {cards}")
+                self.deck.sort_hand(_sort_key)
 
             card_to_play.extra_action(self.deck)
 
-            card_to_play = self.select_card_to_play(energy, hand)
+            card_to_play = self.select_card_to_play(energy)
 
         self.blocks.append(self.block)
+
+        logging.debug(f"discarding remaining cards in hand: {self.deck.hand}")
+        self.deck.discard(self.deck.hand)
+
         return played_cards
 
     def play_turn(self, monster: Monster):
+        logging.debug("play_turn...")
         monster.begin_turn()
         self.strength += self.strength_buff
         self.block = 0
-        hand = self.deck.deal_multi(5)
-
-        played_cards = self._play_hand(hand, monster)
+        
+        self.deck.deal_multi(5)
+        played_cards = self._play_hand(monster)
         logging.info(f"Played: {played_cards}")
-
-        logging.debug(f"discarding {hand}")
-        self.deck.discard(hand)
 
         if self.post_strength_debuff_once:
             self.strength -= self.post_strength_debuff_once
@@ -385,7 +447,7 @@ def main():
         block.append(player.blocks)
 
     logging.debug(f"damage: {damage}")
-    print(f"block: {block}")
+    logging.debug(f"block: {block}")
 
     average_damage = numpy.average(damage, axis=0)
 
@@ -434,13 +496,17 @@ def main():
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
 
     ax.set_title(
-        f'DAMAGE: [{frontloaded_damage:.2f}hp, {scaling_damage}]', loc='right')
+        f'DAMAGE: [{frontloaded_damage:.2f}hp, {scaling_damage}]', loc='right', fontsize=8)
 
     ax.set_xlabel('turn')
     ax.set_ylabel('damage')
 
     ax1.set_xlabel('turn')
     ax1.set_ylabel('block')
+    if len(sys.argv) > 1:
+        plt.suptitle(f'{sys.argv[1]}')
+    else:
+        plt.suptitle("IRONCLAD BASE")
 
     plt.show()
 
