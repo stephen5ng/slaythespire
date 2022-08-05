@@ -150,7 +150,7 @@ class Player:
     def __init__(self, deck: Deck, energy=3) -> None:
         self.deck = deck
         self.energy = energy
-        self.strength = 1
+        self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
