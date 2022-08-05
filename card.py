@@ -86,7 +86,7 @@ class Card(CardArgs, Enum):
         return self.name
 
     def is_attack(self):
-        return bool(self.attack or self.strength_buff or self.strength_gain or self.strength_multiplier > 1),
+        return bool(self.attack or self.strength_buff or self.strength_gain or self.strength_multiplier > 1)
 
     def is_defend(self):
         return bool(self.block),

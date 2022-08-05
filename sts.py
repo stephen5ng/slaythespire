@@ -14,7 +14,7 @@ import numpy.polynomial.polynomial as poly
 from card import IRONCLAD_STARTER
 from card import Card
 
-logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 
 class Deck:
@@ -81,6 +81,7 @@ class Deck:
 
     def sort_hand(self, key):
         self._hand.sort(reverse=True, key=key)
+        logging.debug(f"SORTED {self._hand}")
 
     def __str__(self):
         return f"hand: {self._hand}, discards: {self._discards}, exhausted: {self.exhausted}, deck: {self._deck}"
@@ -134,7 +135,7 @@ class Monster:
 
 class Player:
 
-    def __init__(self, deck: Deck, energy=3) -> None:
+    def __init__(self, deck: Deck, energy: int = 3) -> None:
         self.deck = deck
         self.energy = energy
 
@@ -144,6 +145,30 @@ class Player:
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
+
+    @staticmethod
+    def attack_sort_key(c: Card):
+        k = (c.is_attack(),
+                c.energy if c.energy else 1000,
+                c.exhaustible,
+                c.strength_gain,
+                c.strength_multiplier,
+                c.attack)
+        logging.debug(f"_sort_key: {c}, {k}")
+        return k
+
+
+    @staticmethod
+    def defend_sort_key(c: Card):
+        k = (not c.is_attack(),
+                c.energy if c.energy else 1000,
+                c.block)
+        logging.debug(f"defend_sort_key: {c}, {k}")
+        return k
+
+    @staticmethod
+    def _sort_key(c: Card):
+        return (Player.attack_sort_key(c), Player.defend_sort_key(c))
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
         for card in self.deck.hand:
@@ -156,18 +181,7 @@ class Player:
         return None
 
     def _play_hand(self, monster: Monster):
-
-        def _sort_key(c: Card):
-            k = (c.is_attack(),
-                 c.energy if c.energy else 1000,
-                 c.exhaustible,
-                 c.strength_gain,
-                 c.strength_multiplier,
-                 c.attack)
-            logging.debug(f"attack_sort_key: {c}, {k}")
-            return k
-
-        self.deck.sort_hand(_sort_key)
+        self.deck.sort_hand(self._sort_key)
 
         energy = self.energy
         played_cards = []
@@ -199,7 +213,7 @@ class Player:
             if card_to_play.draw_card:
                 cards = self.deck.deal(card_to_play.draw_card)
                 logging.info(f"drawing cards: {cards}")
-                self.deck.sort_hand(_sort_key)
+                self.deck.sort_hand(self._sort_key)
 
             card_to_play.extra_action(self.deck)
 
@@ -235,63 +249,14 @@ class Player:
         # logging.info(f"damage: {monster.get_damage()}")
 
 
-# class DefendingPlayer(Player):
-#     def __init__(self, deck: Deck, energy=3) -> None:
-#         super().__init__(deck, energy)
+class DefendingPlayer(Player):
 
-#     def _play_hand(self, hand: list, monster: Monster):
+    def __init__(self, deck: Deck, energy: int = 3) -> None:
+        super().__init__(deck, energy)
 
-#         def _sort_key(c: Card):
-#             k = (c.is_defend(),
-#                  c.energy if c.energy else 1000, c.exhaustible)
-#             logging.debug(f"_sort_key: {c}, {k}")
-#             return k
-
-#         hand.sort(reverse=True, key=_sort_key)
-
-#         logging.info(f"HAND: {hand}")
-
-#         energy = self.energy
-#         played_cards = []
-
-#         # Copy hand so that the original hand can be mutated (cards can be exhausted).
-#         for card in hand.copy():
-#             logging.debug(f"energy: {energy} looking at card: {card} / {hand}")
-
-#             if card.energy and energy < card.energy:
-#                 continue
-
-#             logging.debug(f"playing card: {card}")
-#             played_cards.append(card)
-#             energy -= card.energy
-
-#             self.block += card.block
-
-#             if card.exhaustible:
-#                 hand.remove(card)
-
-#             card.extra_action(self.deck)
-
-#         return played_cards
-
-#     def play_turn(self, monster: Monster):
-#         monster.begin_turn()
-#         hand = self.deck.deal_multi(5)
-
-#         played_cards = self._play_hand(hand, monster)
-#         logging.info(f"Played: {played_cards}")
-
-#         logging.debug(f"discarding {hand}")
-#         self.deck.discard(hand)
-
-#         monster.end_turn()
-#         logging.info(f"damage: {monster.get_damage()}")
-
-#     def play_game(self, monster: Monster, turns: int):
-#         for turn in range(turns):
-#             self.play_turn(monster)
-#         # logging.info(f"damage: {numpy.cumsum(monster.get_damage())}")
-#         # logging.info(f"damage: {monster.get_damage()}")
+    @staticmethod
+    def _sort_key(c: Card):
+        return (Player.defend_sort_key(c), Player.attack_sort_key(c))
 
 
 def get_frontloaded_damage(damage: list):
@@ -360,8 +325,10 @@ def main():
     cum_damage = []
     damage = []
     block = []
-    best_game = [0, None]
-    worst_game = [sys.maxsize, None]
+    best_attack = [0, None]
+    worst_attack = [sys.maxsize, None]
+    best_block = [0, None]
+    worst_block = [sys.maxsize, None]
     for trial in range(trials):
         player = Player(Deck(cards, seed=trial))
         monster = Monster()
@@ -369,18 +336,24 @@ def main():
         damage.append(monster.get_damage())
         cum_damage.append(numpy.cumsum(monster.get_damage()))
         block.append(player.blocks)
+        total_block = numpy.sum(player.blocks)
         total_damage = numpy.sum(monster.get_damage())
         # print(f"checking: {total_damage}, {best_play[0]}")
-        if total_damage > best_game[0]:
-            best_play = [total_damage, player.played_cards]
-        if total_damage < worst_game[0]:
-            worst_play = [total_damage, player.played_cards]
-
+        if total_damage > best_attack[0]:
+            best_attack = [total_damage, player.played_cards]
+        if total_damage < worst_attack[0]:
+            worst_attack = [total_damage, player.played_cards]
+        if total_block > best_block[0]:
+            best_block = [total_block, player.played_cards]
+        if total_block < worst_block[0]:
+            worst_block = [total_block, player.played_cards]
 
     logging.debug(f"damage: {damage}")
     logging.debug(f"block: {block}")
-    print(f"BEST GAME: {best_game}")
-    print(f"WORST GAME: {worst_game}")
+    print(f"BEST ATTACK: {best_attack}")
+    print(f"WORST ATTACK: {worst_attack}")
+    print(f"BEST BLOCK: {best_block}")
+    print(f"WORST BLOCK: {worst_block}")
     average_damage = numpy.average(damage, axis=0)
 
     log_average_damage = [math.log(d, 2) for d in average_damage]

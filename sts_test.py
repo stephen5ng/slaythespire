@@ -26,6 +26,8 @@ class TestCards(unittest.TestCase):
         self.assertEqual(Card.DEFEND.attack, 0)
         self.assertEqual(Card.STRIKE.attack, 6)
 
+    def test_is_attack(self):
+        self.assertFalse(Card.DEFEND.is_attack())
 
 class TestPlayer(unittest.TestCase):
     def setUp(self):
