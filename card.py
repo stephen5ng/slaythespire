@@ -90,7 +90,7 @@ class Card(CardArgs, Enum):
 
     def extra_action(self, deck):
         if self.name == 'ANGER':
-            deck.discards.append(Card.ANGER)
+            deck.add_to_discards([Card.ANGER])
 
 
 IRONCLAD_STARTER = [Card.DEFEND]*4 + [Card.STRIKE]*5 + [Card.BASH]

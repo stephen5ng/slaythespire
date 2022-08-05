@@ -165,6 +165,20 @@ class TestDeck(unittest.TestCase):
         deck = Deck([])
         self.assertEqual([], deck.deal())
 
+    def test_discard(self):
+        deck = Deck([Card.STRIKE]*4 + [Card.DEFEND])
+        cards = deck.deal(5)
+        deck.discard(deck.hand)
+        self.assertEqual(0, len(deck.hand))
+        self.assertEqual(5, len(deck.discards))
+
+    def test_exhaust(self):
+        deck = Deck([Card.STRIKE]*4 + [Card.DEFEND])
+        cards = deck.deal(5)
+        deck.exhaust(deck.hand)
+        self.assertEqual(0, len(deck.hand))
+        self.assertEqual(5, len(deck.exhausted))
+
     def test_deal_single_card(self):
         deck = Deck([Card.STRIKE])
         card = deck.deal()[0]
