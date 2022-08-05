@@ -74,6 +74,9 @@ class Card(CardArgs, Enum):
     def __repr__(self):
         return self.name
 
+    def is_attack(self):
+        return bool(self.attack or self.strength_buff or self.strength_gain or self.strength_multiplier > 1),
+
     def extra_action(self, deck):
         if self.name == 'ANGER':
             deck.discards.append(Card.ANGER)
@@ -146,6 +149,13 @@ class Monster:
         return self._damage
 
 
+def attack_sort_key(c: Card):
+    k = (c.is_attack(),
+         c.energy if c.energy else 1000, c.exhaustible, c.strength_gain, c.strength_multiplier)
+    logging.debug(f"attack_sort_key: {c}, {k}")
+    return k
+
+
 class Player:
     def __init__(self, deck: Deck, energy=3) -> None:
         self.deck = deck
@@ -155,9 +165,7 @@ class Player:
         self.post_strength_debuff_once = 0
 
     def _play_hand(self, hand: list, monster: Monster):
-        # Sort by descending energy (except 0-cost cards come first), then put exhaustibles first.
-        hand.sort(reverse=True, key=lambda c: (
-            c.energy if c.energy else 1000, c.exhaustible, c.strength_multiplier))
+        hand.sort(reverse=True, key=attack_sort_key)
 
         logging.info(f"HAND: {hand}")
 
@@ -171,27 +179,26 @@ class Player:
             if card.energy and energy < card.energy:
                 continue
 
-            if card.attack or card.strength_buff or card.strength_gain or card.strength_multiplier > 1:
-                logging.debug(f"playing card: {card}")
-                played_cards.append(card)
-                energy -= card.energy
+            logging.debug(f"playing card: {card}")
+            played_cards.append(card)
+            energy -= card.energy
 
-                if card.attack:
-                    monster.defend(card.attack_multiplier *
-                                   (card.attack + self.strength * card.attack_strength_multiplier))
+            if card.attack:
+                monster.defend(card.attack_multiplier *
+                               (card.attack + self.strength * card.attack_strength_multiplier))
 
-                if card.vulnerable:
-                    monster.vulnerable(card.vulnerable)
+            if card.vulnerable:
+                monster.vulnerable(card.vulnerable)
 
-                self.strength_buff += card.strength_buff
-                self.strength += card.strength_gain
-                self.post_strength_debuff_once += card.strength_loss
-                self.strength *= card.strength_multiplier
+            self.strength_buff += card.strength_buff
+            self.strength += card.strength_gain
+            self.post_strength_debuff_once += card.strength_loss
+            self.strength *= card.strength_multiplier
 
-                if card.exhaustible:
-                    hand.remove(card)
+            if card.exhaustible:
+                hand.remove(card)
 
-                card.extra_action(self.deck)
+            card.extra_action(self.deck)
 
         return played_cards
 
@@ -326,7 +333,8 @@ def main():
     if abs(residuals) < 100:
         plt.plot(x_after_first_deck, ffit, color='green')
     else:
-        plt.plot(x_after_first_deck, [math.pow(2, y) for y in log_ffit], color='purple')
+        plt.plot(x_after_first_deck, [math.pow(2, y)
+                 for y in log_ffit], color='purple')
 
     ax.scatter(x, average_damage, s=4, color='red', marker="_")
     if abs(residuals) > 100:
