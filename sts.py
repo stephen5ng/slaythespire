@@ -147,6 +147,10 @@ class Player:
         self.post_strength_debuff_once = 0
 
     @staticmethod
+    def _sort_key(c: Card):
+        pass
+
+    @staticmethod
     def attack_sort_key(c: Card):
         k = (c.is_attack(),
              c.energy if c.energy else 1000,
