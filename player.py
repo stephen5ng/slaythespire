@@ -1,20 +1,10 @@
 from __future__ import annotations
 
-import argparse
 import logging
-import math
-import sys
-from collections import namedtuple
-from enum import Enum
-from re import S
-from types import NoneType
-from typing import List, Sequence, Union
+from typing import Union
 
-import matplotlib.pyplot as plt
-import numpy
-import numpy.polynomial.polynomial as poly
 
-from card import IRONCLAD_STARTER, Card
+from card import Card
 
 
 class Player:

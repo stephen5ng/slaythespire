@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import numpy
 import numpy.polynomial.polynomial as poly
 
+from card import Card
 from deck import Deck
+from player import AttackingPlayer, DefendingPlayer
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
@@ -107,7 +109,8 @@ def main():
     argparser.add_argument(
         '--turns', help='number of turns', type=int, default=20)
     args = argparser.parse_args()
-    strategy = eval(args.strategy)
+    # strategy = eval(args.strategy)
+    strategy = AttackingPlayer
     cards = eval(args.cards)
 
     turns = args.turns

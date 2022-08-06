@@ -1,9 +1,9 @@
-import logging
 import unittest
-from string import capwords
 
-import sts
-from sts import Card, Deck, Monster, AttackingPlayer
+from card import Card
+from deck import Deck
+from player import AttackingPlayer
+from sts import Monster
 
 
 class TestPlayer(unittest.TestCase):

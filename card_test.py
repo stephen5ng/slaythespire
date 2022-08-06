@@ -1,8 +1,6 @@
-import logging
 import unittest
 
-import sts
-from sts import AttackingPlayer, Card, Deck, Monster
+from card import Card
 
 
 class TestCards(unittest.TestCase):
