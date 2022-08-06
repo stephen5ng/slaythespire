@@ -76,6 +76,7 @@ class Card(CardArgs, Enum):
     PERFECTED_STRIKE_PLUS = CardArgs(2, attack=6, strike_bonus=3)
     POMMEL_STRIKE = CardArgs(1, attack=8, draw_card=1)
     POMMEL_STRIKE_NO_DRAW = CardArgs(1, attack=8, draw_card=0)
+    PUMMEL = CardArgs(1, attack=2, attack_multiplier=4, exhausts=True)
     STRIKE = CardArgs(1, attack=6)
     TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
 
