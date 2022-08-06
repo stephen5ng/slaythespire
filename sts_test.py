@@ -21,14 +21,6 @@ class TestDamage(unittest.TestCase):
                          sts.format_scaling_damage([17, 6.9, 1.3, 4.0]))
 
 
-class TestCards(unittest.TestCase):
-    def test_card(self):
-        self.assertEqual(Card.DEFEND.attack, 0)
-        self.assertEqual(Card.STRIKE.attack, 6)
-
-    def test_is_attack(self):
-        self.assertFalse(Card.DEFEND.is_attack())
-
 class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()
