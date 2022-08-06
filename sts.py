@@ -149,6 +149,7 @@ def main():
     print(f"BEST BLOCK: {best_block}")
     print(f"WORST BLOCK: {worst_block}")
     average_damage = numpy.average(damage, axis=0)
+    average_block = numpy.average(block, axis=0)
 
     log_average_damage = [math.log(d, 2) for d in average_damage]
     turns_after_first_deck = 2+int(len(cards) / 5)
@@ -169,41 +170,45 @@ def main():
     else:
         scaling_damage = format_scaling_damage(coefs)
 
-    print(f"average: {average_damage}")
+    print(f"average_damage: {average_damage}")
+    print(f"average_block: {average_block}")
     print(f"log_average: {log_average_damage}")
     print(f"FRONTLOADED DAMAGE: {frontloaded_damage:.2f}")
     print(
         f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
     print(f"RESIDUALS: r: {residuals}, rlog: {log_residuals}")
 
-    fig, (ax, ax1) = plt.subplots(ncols=2)  # type: ignore
+    fig, (ax0, ax1) = plt.subplots(ncols=2)  # type: ignore
     if abs(residuals) < 100:
-        ax.plot(x_after_first_deck, ffit, color='green')
+        ax0.plot(x_after_first_deck, ffit, color='green')
     else:
-        ax.plot(x_after_first_deck, [math.pow(2, y)
-                                     for y in log_ffit], color='purple')
+        ax0.plot(x_after_first_deck, [math.pow(2, y)
+                                      for y in log_ffit], color='purple')
 
-    ax.scatter(x, average_damage, s=4, color='red', marker="_")
     if abs(residuals) > 100:
-        ax.scatter(x, log_average_damage, s=4, color='purple', marker="_")
+        ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
 
     damage_scatter_data, size = create_scatter_plot_data(damage, 'damage')
     logging.debug(f"scatter_data: {damage_scatter_data}, {size}")
-    ax.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+    ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
 
     block_scatter_data, size = create_scatter_plot_data(block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
+    ax1.scatter(x, average_block, s=4, color='red', marker="_")
+    ax0.scatter(x, average_damage, s=4, color='red', marker="_")
 
-    ax.set_title(
-        f'DAMAGE: [{frontloaded_damage:.2f}hp, {scaling_damage}]', loc='right', fontsize=8)
+    ax0.set_title(
+        f'frontload: {frontloaded_damage:.2f}hp, scaling: {scaling_damage}', loc='right', fontsize=8)
 
-    ax.set_xlabel('turn')
-    ax.set_ylabel('damage')
+    ax0.set_xlabel('turn')
+    ax0.set_ylabel('damage')
 
     ax1.set_xlabel('turn')
     ax1.set_ylabel('block')
+    ax1.set_title(
+        f'avg block: {numpy.average(average_block):.2f}', loc='right', fontsize=8)
     if len(sys.argv) > 1:
-        plt.suptitle(f'{args.strategy}\n{args.cards}')
+        plt.suptitle(f'strategy: {args.strategy}\n{args.cards}')
     else:
         plt.suptitle("IRONCLAD BASE")
 
