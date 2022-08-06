@@ -1,15 +1,14 @@
-from __future__ import annotations
-
 import logging
 from typing import Union
 
-
 from card import Card
+from deck import Deck
+from monster import Monster
 
 
 class Player:
 
-    def __init__(self, deck: "Deck", energy: int = 3) -> None:
+    def __init__(self, deck: Deck, energy: int = 3) -> None:
         self.deck = deck
         self.energy = energy
 
