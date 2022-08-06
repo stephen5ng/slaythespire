@@ -109,8 +109,7 @@ def main():
     argparser.add_argument(
         '--turns', help='number of turns', type=int, default=20)
     args = argparser.parse_args()
-    # strategy = eval(args.strategy)
-    strategy = AttackingPlayer
+    strategy = eval(args.strategy)
     cards = eval(args.cards)
 
     turns = args.turns
