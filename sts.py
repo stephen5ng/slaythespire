@@ -203,7 +203,7 @@ def main():
     ax1.set_xlabel('turn')
     ax1.set_ylabel('block')
     if len(sys.argv) > 1:
-        plt.suptitle(f'{sys.argv[1]}')
+        plt.suptitle(f'{args.strategy}\n{args.cards}')
     else:
         plt.suptitle("IRONCLAD BASE")
 
