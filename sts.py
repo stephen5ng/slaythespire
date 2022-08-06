@@ -145,12 +145,12 @@ class Player:
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
-        
+
     @staticmethod
     def attack_sort_key(c: Card):
         k = (c.is_attack(),
              c.energy if c.energy else 1000,
-             c.exhaustible,
+             c.exhausts,
              c.strength_gain,
              c.strength_multiplier,
              c.attack)
@@ -186,7 +186,7 @@ class Player:
             logging.debug(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
-            if card_to_play.exhaustible:
+            if card_to_play.exhausts:
                 self.deck.exhaust([card_to_play])
             else:
                 self.deck.discard([card_to_play])

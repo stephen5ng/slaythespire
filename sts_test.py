@@ -3,7 +3,7 @@ import unittest
 from string import capwords
 
 import sts
-from sts import Card, Deck, Monster, Player
+from sts import Card, Deck, Monster, AttackingPlayer
 
 
 class TestDamage(unittest.TestCase):
@@ -36,7 +36,7 @@ class TestPlayer(unittest.TestCase):
     def test_play_turn(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        Player(deck).play_turn(self.monster)
+        AttackingPlayer(deck).play_turn(self.monster)
 
         self.assertEqual([18], self.monster.get_damage())
         self.assertEqual(5, len(cards), msg='input cards was mutated')
@@ -44,7 +44,7 @@ class TestPlayer(unittest.TestCase):
     def test_play_turn_no_energy(self):
         cards = [Card.ANGER] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        Player(deck).play_turn(self.monster)
+        AttackingPlayer(deck).play_turn(self.monster)
 
         self.assertEqual([24], self.monster.get_damage())
         self.assertEqual([
@@ -54,26 +54,26 @@ class TestPlayer(unittest.TestCase):
     def test_play_turn_strike_bonus(self):
         cards = [Card.PERFECTED_STRIKE] + [Card.STRIKE] * 4
         deck = Deck(cards)
-        Player(deck).play_turn(self.monster)
+        AttackingPlayer(deck).play_turn(self.monster)
 
         self.assertEqual([22], self.monster.get_damage())
 
     def test_play_turn_draw_card(self):
         cards = [Card.POMMEL_STRIKE] + [Card.STRIKE] * 4 + [Card.BASH]
         deck = Deck(cards)
-        Player(deck).play_turn(self.monster)
+        AttackingPlayer(deck).play_turn(self.monster)
 
         self.assertEqual([16], self.monster.get_damage())
 
     def test_play_turn_vulnerable(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 3 + [Card.BASH]
-        Player(Deck(cards)).play_turn(self.monster)
+        AttackingPlayer(Deck(cards)).play_turn(self.monster)
 
         self.assertEqual([17], self.monster.get_damage())
 
     def test_play_turn_strength_buff(self):
         cards = [Card.DEMON_FORM] + [Card.STRIKE] * 4
-        player = Player(Deck(cards))
+        player = AttackingPlayer(Deck(cards))
         player.play_turn(self.monster)
         player.play_turn(self.monster)
         player.play_turn(self.monster)
@@ -82,7 +82,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_play_turn_strength_gain(self):
         cards = [Card.INFLAME] + [Card.STRIKE] * 4
-        player = Player(Deck(cards))
+        player = AttackingPlayer(Deck(cards))
         player.play_turn(self.monster)
         player.play_turn(self.monster)
         player.play_turn(self.monster)
@@ -91,7 +91,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_play_turn_strength_multiplier(self):
         cards = [Card.INFLAME] + [Card.STRIKE] * 3 + [Card.LIMIT_BREAK_PLUS]
-        player = Player(Deck(cards))
+        player = AttackingPlayer(Deck(cards))
         player.play_turn(self.monster)
         player.play_turn(self.monster)
         player.play_turn(self.monster)
@@ -100,7 +100,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_play_turn_flex(self):
         cards = [Card.FLEX] + [Card.STRIKE] * 9
-        player = Player(Deck(cards, shuffle=False))
+        player = AttackingPlayer(Deck(cards, shuffle=False))
         player.play_turn(self.monster)
         player.play_turn(self.monster)
 
@@ -108,7 +108,7 @@ class TestPlayer(unittest.TestCase):
 
     def test_play_turn_attack_multiplier(self):
         cards = [Card.TWIN_STRIKE] + [Card.DEFEND] * 4
-        player = Player(Deck(cards))
+        player = AttackingPlayer(Deck(cards))
         player.play_turn(self.monster)
 
         self.assertEqual([10], self.monster.get_damage())
@@ -116,7 +116,7 @@ class TestPlayer(unittest.TestCase):
     def test_play_turn_exhaustible(self):
         cards = [Card.DEMON_FORM] + [Card.BASH] + [Card.DEFEND] * 3
         deck = Deck(cards)
-        Player(deck, energy=5).play_turn(self.monster)
+        AttackingPlayer(deck, energy=5).play_turn(self.monster)
 
         self.assertNotIn(Card.DEMON_FORM, deck.discards)
         # Exhausting DEMON_FORM should not affect BASH
@@ -124,13 +124,13 @@ class TestPlayer(unittest.TestCase):
 
     def test_single_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        Player(Deck(cards)).play_game(self.monster, 1)
+        AttackingPlayer(Deck(cards)).play_game(self.monster, 1)
 
         self.assertEqual([18], self.monster.get_damage())
 
     def test_multi_play_game(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
-        Player(Deck(cards)).play_game(self.monster, 2)
+        AttackingPlayer(Deck(cards)).play_game(self.monster, 2)
 
         self.assertEqual([18, 18], self.monster.get_damage())
 
