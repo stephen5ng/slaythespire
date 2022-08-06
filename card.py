@@ -3,7 +3,7 @@ from collections import namedtuple
 from enum import Enum
 import logging
 
-logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.DEBUG)
+logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 
 class CardArgs(namedtuple('CardArgs', (

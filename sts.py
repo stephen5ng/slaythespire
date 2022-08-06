@@ -145,30 +145,25 @@ class Player:
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
-
+        
     @staticmethod
     def attack_sort_key(c: Card):
         k = (c.is_attack(),
-                c.energy if c.energy else 1000,
-                c.exhaustible,
-                c.strength_gain,
-                c.strength_multiplier,
-                c.attack)
-        logging.debug(f"_sort_key: {c}, {k}")
+             c.energy if c.energy else 1000,
+             c.exhaustible,
+             c.strength_gain,
+             c.strength_multiplier,
+             c.attack)
+        logging.debug(f"attack_sort_key: {c}, {k}")
         return k
-
 
     @staticmethod
     def defend_sort_key(c: Card):
         k = (not c.is_attack(),
-                c.energy if c.energy else 1000,
-                c.block)
+             c.energy if c.energy else 1000,
+             c.block)
         logging.debug(f"defend_sort_key: {c}, {k}")
         return k
-
-    @staticmethod
-    def _sort_key(c: Card):
-        return (Player.attack_sort_key(c), Player.defend_sort_key(c))
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
         for card in self.deck.hand:
@@ -250,13 +245,15 @@ class Player:
 
 
 class DefendingPlayer(Player):
-
-    def __init__(self, deck: Deck, energy: int = 3) -> None:
-        super().__init__(deck, energy)
-
     @staticmethod
     def _sort_key(c: Card):
         return (Player.defend_sort_key(c), Player.attack_sort_key(c))
+
+
+class AttackingPlayer(Player):
+    @staticmethod
+    def _sort_key(c: Card):
+        return (Player.attack_sort_key(c), Player.defend_sort_key(c))
 
 
 def get_frontloaded_damage(damage: list):
@@ -321,7 +318,7 @@ def main():
         cards = IRONCLAD_STARTER
 
     turns = 20
-    trials = 1000
+    trials = 10000
     cum_damage = []
     damage = []
     block = []
@@ -330,7 +327,7 @@ def main():
     best_block = [0, None]
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
-        player = Player(Deck(cards, seed=trial))
+        player = AttackingPlayer(Deck(cards, seed=trial))
         monster = Monster()
         player.play_game(monster, turns)
         damage.append(monster.get_damage())
