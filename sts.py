@@ -1,3 +1,4 @@
+import argparse
 import logging
 import math
 import sys
@@ -11,8 +12,7 @@ import matplotlib.pyplot as plt
 import numpy
 import numpy.polynomial.polynomial as poly
 
-from card import IRONCLAD_STARTER
-from card import Card
+from card import IRONCLAD_STARTER, Card
 
 logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
@@ -316,13 +316,19 @@ def curve_fit(x, y):
 
 
 def main():
-    if len(sys.argv) > 1:
-        cards = eval(sys.argv[1])
-    else:
-        cards = IRONCLAD_STARTER
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument(
+        'cards', nargs='?', help='list of cards (defaults to Ironclad base set)')
+    argparser.add_argument(
+        '--strategy', help='player strategy (default: AttackingPlayer)', default="AttackingPlayer")
+    argparser.add_argument('--trials', help='number of trials', type=int, default=10000)
+    argparser.add_argument('--turns', help='number of turns', type=int, default=20)
+    args = argparser.parse_args()
+    strategy = eval(args.strategy)
+    cards = eval(args.cards)
 
-    turns = 20
-    trials = 10000
+    turns = args.turns
+    trials = args.trials
     cum_damage = []
     damage = []
     block = []
@@ -331,7 +337,7 @@ def main():
     best_block = [0, None]
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
-        player = AttackingPlayer(Deck(cards, seed=trial))
+        player = strategy(Deck(cards, seed=trial))
         monster = Monster()
         player.play_game(monster, turns)
         damage.append(monster.get_damage())
@@ -348,7 +354,9 @@ def main():
             best_block = [total_block, player.played_cards]
         if total_block < worst_block[0]:
             worst_block = [total_block, player.played_cards]
-
+        if trial % 100 == 0:
+            print(".", end='', file=sys.stderr, flush=True)
+    print("", file=sys.stderr)
     logging.debug(f"damage: {damage}")
     logging.debug(f"block: {block}")
     print(f"BEST ATTACK: {best_attack}")
