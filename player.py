@@ -26,10 +26,10 @@ class Player:
     @staticmethod
     def attack_sort_key(c: Card):
         k = (c.is_attack(),
-             c.energy if c.energy else 1000,
-             c.exhausts,
              c.strength_gain,
              c.strength_multiplier,
+             c.energy if c.energy else 1000,
+             c.exhausts,
              c.attack)
         logging.debug(f"attack_sort_key: {c}, {k}")
         return k

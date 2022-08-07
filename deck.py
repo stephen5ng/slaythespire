@@ -12,6 +12,7 @@ class Deck:
         self._discards = []
         self._hand = []
         self._exhausted = []
+        self._deals = 0
         numpy.random.seed(seed=seed)
         if shuffle:
             numpy.random.shuffle(self._deck)
@@ -35,7 +36,6 @@ class Deck:
 
     def deal(self, count=1) -> List[Card]:
         logging.debug(f"deal: {self}")
-
         cards = []
         while count > 0:
             card = self._deal()
@@ -44,8 +44,9 @@ class Deck:
             count -= 1
             cards.append(card)
 
-        logging.info(f"dealt {self}")
+        logging.info(f"{self._deals} dealt {self}")
 
+        self._deals += 1
         return cards
 
     def discard(self, cards):

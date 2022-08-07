@@ -79,6 +79,7 @@ class Card(CardArgs, Enum):
     PUMMEL = CardArgs(1, attack=2, attack_multiplier=4, exhausts=True)
     STRIKE = CardArgs(1, attack=6)
     TWIN_STRIKE = CardArgs(1, attack=5, attack_multiplier=2)
+    TWIN_STRIKE_PLUS = CardArgs(1, attack=7, attack_multiplier=2)
 
     def __str__(self):
         return self.name
