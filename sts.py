@@ -1,8 +1,8 @@
 import argparse
-from collections import namedtuple
 import logging
 import math
 import sys
+from collections import namedtuple
 
 import matplotlib.pyplot as plt
 import numpy
@@ -81,6 +81,13 @@ def curve_fit(x, y):
     residuals = pret[1][0]
     fit = poly.polyval(x, coefs)
     return coefs, residuals, fit
+
+
+def plot_one_attribute(ax, x, data, size_by_turn, color):
+    sizes = []
+    for i in range(len(data)):
+        sizes.append(size_by_turn[i][data[i]])
+    ax.scatter(x, data, s=sizes, color=color)
 
 
 def main():
@@ -171,12 +178,10 @@ def main():
         f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
 
     fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
-    if abs(residuals) < 100:
-        ax0.plot(x_after_first_deck, ffit, color='gray')
-    else:
-        ax0.plot(x_after_first_deck, [math.pow(2, y)
-                                      for y in log_ffit], color='purple')
-        # ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
+    curve_fit_data = ffit if abs(residuals) < 100 else [math.pow(2, y)
+                                                        for y in log_ffit]
+    ax0.plot(x_after_first_deck, curve_fit_data, color='gray')
+    # ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
         damage, 'damage')
@@ -188,18 +193,10 @@ def main():
     logging.debug(
         f"best damage {best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
-    best_attack_sizes = []
-    for i in range(len(best_attack.Damages)):
-        best_attack_sizes.append(
-            damage_by_size_by_turn[i][best_attack.Damages[i]])
-    ax0.scatter(x, best_attack.Damages, s=best_attack_sizes, color='lime')
-
-    worst_attack_sizes = []
-    for i in range(len(worst_attack.Damages)):
-        worst_attack_sizes.append(
-            damage_by_size_by_turn[i][worst_attack.Damages[i]])
-    ax0.scatter(x, worst_attack.Damages,
-                s=worst_attack_sizes, color='lightcoral')
+    plot_one_attribute(ax0, x, best_attack.Damages,
+                       damage_by_size_by_turn, 'lime')
+    plot_one_attribute(ax0, x, worst_attack.Damages,
+                       damage_by_size_by_turn, 'lightcoral')
 
     block_scatter_data, size, _ = create_scatter_plot_data(block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
