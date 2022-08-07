@@ -1,4 +1,5 @@
 import argparse
+from collections import namedtuple
 import logging
 import math
 import sys
@@ -16,10 +17,14 @@ logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
 
 def get_frontloaded_damage(damage: list):
+    # return (damage[0] +
+    #         damage[1] +
+    #         damage[2] +
+    #         damage[3]) / 4.0
     return (damage[0] +
             damage[1]/2.0 +
             damage[2]/4.0 +
-            damage[3]/8.0)
+            damage[3]/8.0)/(1.0 + 1/2.0 + 1/4.0 + 1/8.0)
 
 
 def create_scatter_plot_data(plot_data, attribute):
@@ -28,9 +33,13 @@ def create_scatter_plot_data(plot_data, attribute):
     scatter_data = {}
     scatter_data['turns'] = []
     scatter_data[attribute] = []
+    attributes_by_turn = []
     size = []
     logging.debug(f"plot_data: {plot_data}")
+    hists = []
+    sizes_by_attribute = []
     for turn in range(len(plot_data)):
+        size_by_attribute = {}
         turn_attrib = plot_data[turn]
         r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
         hist = numpy.histogram(turn_attrib, bins=r)
@@ -38,13 +47,17 @@ def create_scatter_plot_data(plot_data, attribute):
             if bin_count:
                 scatter_data['turns'].append(turn)
                 scatter_data[attribute].append(bin)
-                size.append(bin_count/(trials/100.0))
+                s = bin_count/(trials/100.0)
+                size_by_attribute[bin] = s
+                hists.append(hist)
+                size.append(s)
+        sizes_by_attribute.append(size_by_attribute)
         # if turn == 0:
         #     logging.debug(f"TURN0 hist: {hist}")
         #     logging.debug(f"TURN0 size: {size}")
         #     logging.debug(f"TURN0 scatter_data {scatter_data}")
 
-    return scatter_data, size
+    return scatter_data, size, sizes_by_attribute
 
 
 def format_scaling_damage(coefs):
@@ -63,7 +76,7 @@ def format_scaling_damage(coefs):
 
 
 def curve_fit(x, y):
-    pret = poly.polyfit(x, y, 2, full=True)
+    pret = poly.polyfit(x, y, 1, full=True)
     coefs = pret[0]
     residuals = pret[1][0]
     fit = poly.polyval(x, coefs)
@@ -89,8 +102,10 @@ def main():
     cum_damage = []
     damage = []
     block = []
-    best_attack = [0, None]
-    worst_attack = [sys.maxsize, None]
+    TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
+    best_attack = TurnInfo(TotalDamage=0, CardsPlayed=None, Damages=[])
+    worst_attack = TurnInfo(TotalDamage=sys.maxsize,
+                            CardsPlayed=None, Damages=[])
     best_block = [0, None]
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
@@ -102,11 +117,14 @@ def main():
         block.append(player.blocks)
         total_block = numpy.sum(player.blocks)
         total_damage = numpy.sum(monster.get_damage())
+        # total_damage = get_frontloaded_damage(monster.get_damage())
         # print(f"checking: {total_damage}, {best_play[0]}")
-        if total_damage > best_attack[0]:
-            best_attack = [total_damage, player.played_cards]
-        if total_damage < worst_attack[0]:
-            worst_attack = [total_damage, player.played_cards]
+        if total_damage > best_attack.TotalDamage:
+            best_attack = TurnInfo(
+                total_damage, player.played_cards, monster.get_damage())
+        if total_damage < worst_attack.TotalDamage:
+            worst_attack = TurnInfo(
+                total_damage, player.played_cards, monster.get_damage())
         if total_block > best_block[0]:
             best_block = [total_block, player.played_cards]
         if total_block < worst_block[0]:
@@ -121,10 +139,11 @@ def main():
     print(f"BEST BLOCK: {best_block}")
     print(f"WORST BLOCK: {worst_block}")
     average_damage = numpy.average(damage, axis=0)
+    cum_damage = numpy.sum(average_damage)
     average_block = numpy.average(block, axis=0)
 
     log_average_damage = [math.log(d, 2) for d in average_damage]
-    turns_after_first_deck = 2+int(len(cards) / 5)
+    turns_after_first_deck = 2 * int(len(cards) / 5)
     x = list(range(turns))
     x_after_first_deck = x[turns_after_first_deck:]
 
@@ -135,6 +154,7 @@ def main():
     print("curvefit log")
     log_coefs, log_residuals, log_ffit = curve_fit(
         x_after_first_deck, log_average_damage[turns_after_first_deck:])
+    logging.debug(f"residuals: r: {residuals}, rlog: {log_residuals}")
 
     frontloaded_damage = get_frontloaded_damage(average_damage)
     if abs(residuals) >= 100:
@@ -143,34 +163,51 @@ def main():
         scaling_damage = format_scaling_damage(coefs)
 
     print(f"average_damage: {average_damage}")
+    print(f"cum_damage: {cum_damage}")
+    # print(f"log_average: {log_average_damage}")
     print(f"average_block: {average_block}")
-    print(f"log_average: {log_average_damage}")
     print(f"FRONTLOADED DAMAGE: {frontloaded_damage:.2f}")
     print(
         f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
-    print(f"RESIDUALS: r: {residuals}, rlog: {log_residuals}")
 
-    fig, (ax0, ax1) = plt.subplots(ncols=2)  # type: ignore
+    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
     if abs(residuals) < 100:
-        ax0.plot(x_after_first_deck, ffit, color='green')
+        ax0.plot(x_after_first_deck, ffit, color='gray')
     else:
         ax0.plot(x_after_first_deck, [math.pow(2, y)
                                       for y in log_ffit], color='purple')
+        # ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
 
-    if abs(residuals) > 100:
-        ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
-
-    damage_scatter_data, size = create_scatter_plot_data(damage, 'damage')
+    damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
+        damage, 'damage')
     logging.debug(f"scatter_data: {damage_scatter_data}, {size}")
     ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+    # ax0.scatter(x, average_damage, s=4, color='gray', marker="_")
+    ax0.plot(average_damage, linestyle='dotted', linewidth=1, color='grey')
 
-    block_scatter_data, size = create_scatter_plot_data(block, 'block')
+    logging.debug(
+        f"best damage {best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+
+    best_attack_sizes = []
+    for i in range(len(best_attack.Damages)):
+        best_attack_sizes.append(
+            damage_by_size_by_turn[i][best_attack.Damages[i]])
+    ax0.scatter(x, best_attack.Damages, s=best_attack_sizes, color='lime')
+
+    worst_attack_sizes = []
+    for i in range(len(worst_attack.Damages)):
+        worst_attack_sizes.append(
+            damage_by_size_by_turn[i][worst_attack.Damages[i]])
+    ax0.scatter(x, worst_attack.Damages,
+                s=worst_attack_sizes, color='lightcoral')
+
+    block_scatter_data, size, _ = create_scatter_plot_data(block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
-    ax1.scatter(x, average_block, s=4, color='red', marker="_")
-    ax0.scatter(x, average_damage, s=4, color='red', marker="_")
+    # ax1.scatter(x, average_block, s=8, color='grey', marker="_")
+    ax1.plot(average_block, linestyle='dotted', linewidth=1, color='grey')
 
     ax0.set_title(
-        f'frontload: {frontloaded_damage:.2f}hp, scaling: {scaling_damage}', loc='right', fontsize=8)
+        f'total: {cum_damage:.2f} ({worst_attack.TotalDamage} to {best_attack.TotalDamage}) frontload: {frontloaded_damage:.2f}hp scaling: {scaling_damage}', loc='right', fontsize=8)
 
     ax0.set_xlabel('turn')
     ax0.set_ylabel('damage')
