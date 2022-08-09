@@ -1,5 +1,6 @@
 import argparse
 import logging
+import logging.config
 import math
 import sys
 from collections import namedtuple
@@ -10,11 +11,14 @@ import numpy.polynomial.polynomial as poly
 
 from card import Card
 from deck import Deck
-from monster import Monster
+from monster import JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
 
-logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
 
+
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
+turn_logger = logging.getLogger("turns")
+logger = logging.getLogger("sts")
 
 def get_frontloaded_damage(damage: list):
     # return (damage[0] +
@@ -91,6 +95,9 @@ def plot_one_attribute(ax, x, data, size_by_turn, color):
 
 
 def main():
+    logging.debug(f"starting...")
+    logging.info(f"info starting...")
+
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
         'cards', nargs='?', help='list of cards (defaults to Ironclad base set)')
@@ -117,7 +124,9 @@ def main():
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
-        monster = Monster()
+        monster = JawWorm()
+        # monster = Monster()
+        logger.debug(f"monster: {monster}")
         player.play_game(monster, turns)
         damage.append(monster.get_damage())
         cum_damage.append(numpy.cumsum(monster.get_damage()))
@@ -139,8 +148,8 @@ def main():
         if trial % 100 == 0:
             print(".", end='', file=sys.stderr, flush=True)
     print("", file=sys.stderr)
-    logging.debug(f"damage: {damage}")
-    logging.debug(f"block: {block}")
+    logger.debug(f"damage: {damage}")
+    logger.debug(f"block: {block}")
     print(f"BEST ATTACK: {best_attack}")
     print(f"WORST ATTACK: {worst_attack}")
     print(f"BEST BLOCK: {best_block}")

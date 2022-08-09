@@ -3,7 +3,7 @@ from collections import namedtuple
 from enum import Enum
 import logging
 
-logging.basicConfig(filename='sts.log', encoding='utf-8', level=logging.INFO)
+logger = logging.getLogger("turns").getChild(__name__)
 
 
 class CardArgs(namedtuple('CardArgs', (
@@ -105,7 +105,7 @@ class Card(CardArgs, Enum):
             [c for c in deck.all_cards() if 'STRIKE' in str(c)])
         strike_bonus = (
             self.strike_bonus * cards_with_strike)
-        logging.debug(
+        logger.debug(
             f"cards with strike: {cards_with_strike}, strike bonus: {strike_bonus}")
         return strike_bonus
 

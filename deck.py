@@ -1,10 +1,13 @@
 import logging
+import logging.config
+from logging import config
 from typing import List, Union
 
 import numpy
 
 from card import Card
 
+logger = logging.getLogger("turns").getChild(__name__)
 
 class Deck:
     def __init__(self, cards, seed=1, shuffle=True):
@@ -16,16 +19,16 @@ class Deck:
         numpy.random.seed(seed=seed)
         if shuffle:
             numpy.random.shuffle(self._deck)
-        logging.info(f"Deck: {self._deck}")
+        logger.info(f"Deck: {self._deck}")
 
     def _deal(self) -> Union[Card, None]:
-        logging.debug(f"deal: {self}")
+        logger.debug(f"_deal: {self}")
 
         if not self._deck:
             if self._discards:
                 self._deck = self._discards.copy()
                 self._discards = []
-                logging.info(f"shuffling... {self}")
+                logger.info(f"shuffling... {self}")
                 numpy.random.shuffle(self._deck)
 
         if not self._deck:
@@ -35,7 +38,7 @@ class Deck:
         return dealt
 
     def deal(self, count=1) -> List[Card]:
-        logging.debug(f"deal: {self}")
+        logger.debug(f"deal: {self}")
         cards = []
         while count > 0:
             card = self._deal()
@@ -44,20 +47,20 @@ class Deck:
             count -= 1
             cards.append(card)
 
-        logging.info(f"{self._deals} dealt {self}")
+        logger.info(f"{self._deals} dealt {self}")
 
         self._deals += 1
         return cards
 
     def discard(self, cards):
-        logging.debug(f"discarding {cards} from {self}")
+        logger.debug(f"discarding {cards} from {self}")
         self.add_to_discards(cards)
 
         for card in cards:
             self._hand.remove(card)
 
     def add_to_discards(self, cards):
-        logging.debug(f"add_to_discard {cards} for {self}")
+        logger.debug(f"add_to_discard {cards} for {self}")
         self._discards.extend(cards)
 
     def exhaust(self, cards):
@@ -71,7 +74,7 @@ class Deck:
 
     def sort_hand(self, key):
         self._hand.sort(reverse=True, key=key)
-        logging.debug(f"SORTED {self._hand}")
+        logger.debug(f"SORTED {self._hand}")
 
     def __str__(self):
         return f"hand: {self._hand}, discards: {self._discards}, exhausted: {self.exhausted}, deck: {self._deck}"
