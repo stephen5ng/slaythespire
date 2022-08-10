@@ -107,9 +107,11 @@ def main():
         '--trials', help='number of trials', type=int, default=10000)
     argparser.add_argument(
         '--turns', help='number of turns', type=int, default=20)
+    argparser.add_argument('--monster', help='monster to fight', default='Monster')
     args = argparser.parse_args()
     strategy = eval(args.strategy)
     cards = eval(args.cards)
+    monster_factory = eval(args.monster)
 
     turns = args.turns
     trials = args.trials
@@ -124,8 +126,7 @@ def main():
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
-        # monster = JawWorm()
-        monster = Monster()
+        monster = monster_factory()
         logger.debug(f"monster: {monster}")
         player.play_game(monster, turns)
         damage.append(monster.get_damage())
