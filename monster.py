@@ -1,6 +1,7 @@
 import logging
 
 from enum import Enum, auto
+from typing import Sequence
 
 import numpy
 
@@ -20,7 +21,7 @@ class Monster:
     def attack(self):
         pass
 
-    def defend(self, attack_damage: int):
+    def defend(self, attack_damage: int) -> None:
         array_gap = 1 + self._turn - len(self._damage)
         if array_gap:
             self._damage.extend([0]*array_gap)
@@ -39,7 +40,7 @@ class Monster:
         logger.debug(
             f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, damage: {attack_damage}->{damage}->{post_block_damage}, hp: {self.hp}")
 
-    def vulnerable(self, turns: int):
+    def vulnerable(self, turns: int) -> None:
         self._vulnerable += turns
         logger.debug(
             f"{self._turn}: vulnerable({turns}), vuln: {self._vulnerable}")
@@ -49,7 +50,7 @@ class Monster:
             self._vulnerable -= 1
         self._turn += 1
 
-    def get_damage(self):
+    def get_damage(self) -> Sequence:
         return self._damage
 
 
