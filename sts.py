@@ -15,20 +15,18 @@ from monster import JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
 
 
-
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 turn_logger = logging.getLogger("turns")
 logger = logging.getLogger("sts")
 
-def get_frontloaded_damage(damage: list):
-    # return (damage[0] +
-    #         damage[1] +
-    #         damage[2] +
-    #         damage[3]) / 4.0
-    return (damage[0] +
-            damage[1]/2.0 +
-            damage[2]/4.0 +
-            damage[3]/8.0)/(1.0 + 1/2.0 + 1/4.0 + 1/8.0)
+
+def get_frontloaded_damage(damage: list, scale=True):
+    fld = 0.0
+    scaling = 1.0
+    for ix in range(min(len(damage), 4)):
+        fld += damage[ix] * (scaling if scale else 1.0)
+        scaling /= 2.0
+    return fld
 
 
 def create_scatter_plot_data(plot_data, attribute):
@@ -91,7 +89,19 @@ def plot_one_attribute(ax, x, data, size_by_turn, color):
     sizes = []
     for i in range(len(data)):
         sizes.append(size_by_turn[i][data[i]])
-    ax.scatter(x, data, s=sizes, color=color)
+    ax.scatter(x[0:len(data)], data, s=sizes, color=color)
+
+
+def pad_to_dense(M):
+    """Appends the minimal required amount of zeroes at the end of each 
+     array in the jagged array `M`, such that `M` looses its jagedness."""
+
+    maxlen = max(len(r) for r in M)
+
+    Z = numpy.zeros((len(M), maxlen))
+    for enu, row in enumerate(M):
+        Z[enu, :len(row)] += row
+    return Z
 
 
 def main():
@@ -107,7 +117,8 @@ def main():
         '--trials', help='number of trials', type=int, default=10000)
     argparser.add_argument(
         '--turns', help='number of turns', type=int, default=20)
-    argparser.add_argument('--monster', help='monster to fight', default='Monster')
+    argparser.add_argument(
+        '--monster', help='monster to fight', default='Monster')
     args = argparser.parse_args()
     strategy = eval(args.strategy)
     cards = eval(args.cards)
@@ -155,13 +166,18 @@ def main():
     print(f"WORST ATTACK: {worst_attack}")
     print(f"BEST BLOCK: {best_block}")
     print(f"WORST BLOCK: {worst_block}")
+    damage = pad_to_dense(damage)
+    block = pad_to_dense(block)
+
     average_damage = numpy.average(damage, axis=0)
     cum_damage = numpy.sum(average_damage)
     average_block = numpy.average(block, axis=0)
-
+    print(f"average damage {average_damage}")
     log_average_damage = [math.log(d, 2) for d in average_damage]
     turns_after_first_deck = 2 * int(len(cards) / 5)
-    x = list(range(turns))
+    if len(average_damage) - turns_after_first_deck < 2:
+        turns_after_first_deck = 0
+    x = list(range(len(average_damage)))
     x_after_first_deck = x[turns_after_first_deck:]
 
     print("curvefit")
