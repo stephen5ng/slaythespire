@@ -124,8 +124,8 @@ def main():
     worst_block = [sys.maxsize, None]
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
-        monster = JawWorm()
-        # monster = Monster()
+        # monster = JawWorm()
+        monster = Monster()
         logger.debug(f"monster: {monster}")
         player.play_game(monster, turns)
         damage.append(monster.get_damage())

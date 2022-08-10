@@ -28,6 +28,15 @@ class TestPlayer(unittest.TestCase):
             Card.ANGER, Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE
         ], deck.discards)
 
+    def test_play_turn_until_monster_dead(self):
+        monster = Monster(10)
+
+        cards = [Card.STRIKE] * 5
+        deck = Deck(cards)
+        AttackingPlayer(deck).play_turn(monster)
+
+        self.assertEqual([12], monster.get_damage())
+
     def test_play_turn_strike_bonus(self):
         cards = [Card.PERFECTED_STRIKE] + [Card.STRIKE] * 4
         deck = Deck(cards)

@@ -7,12 +7,12 @@ import numpy
 logger = logging.getLogger("turns").getChild(__name__)
 
 class Monster:
-    def __init__(self) -> None:
+    def __init__(self, hp=1000) -> None:
         self._damage = []
         self._turn = 0
         self._vulnerable = 0
         self.block = 0
-        self.hp = 1000
+        self.hp = hp
 
     def begin_turn(self):
         pass
@@ -34,15 +34,15 @@ class Monster:
         post_block_damage = damage - self.block
         self.block = 0
 
-        self.hp -= post_block_damage
+        self.hp = max(0, self.hp - post_block_damage)
         self._damage[self._turn] += post_block_damage
         logger.debug(
-            f"{self._turn}: MONSTER defend() vuln: {self._vulnerable}, damage: {attack_damage}->{damage}->{post_block_damage}, hp: {self.hp}")
+            f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, damage: {attack_damage}->{damage}->{post_block_damage}, hp: {self.hp}")
 
     def vulnerable(self, turns: int):
         self._vulnerable += turns
         logger.debug(
-            f"{self._turn}: MONSTER vulnerable({turns}), vuln: {self._vulnerable}")
+            f"{self._turn}: vulnerable({turns}), vuln: {self._vulnerable}")
 
     def end_turn(self):
         if self._vulnerable > 0:

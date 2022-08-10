@@ -10,10 +10,20 @@ from sts import Monster
 class TestMonster(unittest.TestCase):
     def test_defend(self):
         monster = Monster()
+        initial_hp = monster.hp
         monster.begin_turn()
         monster.defend(5)
 
         self.assertEqual([5], monster.get_damage())
+        self.assertEqual(initial_hp - 5, monster.hp)
+
+    def test_death(self):
+        monster = Monster()
+        initial_hp = monster.hp
+        monster.begin_turn()
+        monster.defend(initial_hp+10)
+
+        self.assertEqual(0, monster.hp)
 
     def test_vulnerable(self):
         monster = Monster()

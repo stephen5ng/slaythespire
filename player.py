@@ -32,7 +32,7 @@ class Player:
              c.energy if c.energy else 1000,
              c.exhausts,
              c.attack)
-        # logger.debug(f"attack_sort_key: {c}, {k}")
+        logger.debug(f"attack_sort_key: {c}, {k}")
         return k
 
     @staticmethod
@@ -40,17 +40,17 @@ class Player:
         k = (not c.is_attack(),
              c.energy if c.energy else 1000,
              c.block)
-        # logger.debug(f"defend_sort_key: {c}, {k}")
+        logger.debug(f"defend_sort_key: {c}, {k}")
         return k
 
     def defend(self, attack_damage):
-        # print(f"defend: {attack_damage}, {self.block}")
+        logger.debug(f"defend: {attack_damage}, {self.block}")
         if attack_damage <= self.block:
             self.block -= attack_damage
             return
         self.hp -= (attack_damage - self.block)
         self.block = 0
-        logger.debug(
+        logger.info(
             f"taking damge {attack_damage}, block: {self.block}, hp: {self.hp}")
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
@@ -74,6 +74,8 @@ class Player:
 
         card_to_play = self.select_card_to_play(energy)
         while card_to_play:
+            if not monster.hp:
+                return played_cards
             logger.debug(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
@@ -135,7 +137,7 @@ class Player:
         for turn in range(turns):
             self.play_turn(monster)
         # logger.info(f"damage: {numpy.cumsum(monster.get_damage())}")
-        # logger.info(f"damage: {monster.get_damage()}")
+        logger.debug(f"damage: {monster.get_damage()}")
 
 
 class DefendingPlayer(Player):
