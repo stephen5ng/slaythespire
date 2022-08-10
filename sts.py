@@ -27,6 +27,7 @@ def get_frontloaded_damage(damage: list, scale=True):
     for ix in range(min(len(damage), 4)):
         fld += damage[ix] * (scaling if scale else 1.0)
         scaling /= 2.0
+    print(f"FRONTLOADED DAMAGE: {fld:.2f}")
     return fld
 
 
@@ -59,6 +60,8 @@ def create_scatter_plot_data(plot_data, attribute):
             logger.debug(f"TURN hist: {hist}")
             logger.debug(f"TURN size: {size}")
             logger.debug(f"TURN scatter_data {scatter_data}")
+
+    logging.debug(f"scatter_data: {scatter_data}, {size}")
 
     return scatter_data, size, sizes_by_attribute
 
@@ -130,6 +133,11 @@ class TrialStats:
             math.log(d, 2) for d in self.average_monster_damage]
     
         self.average_player_block = numpy.average(self.player_block, axis=0)
+        logger.debug(f"damage: {self.monster_damage}")
+        logger.debug(f"block: {self.player_block}")
+        print(f"average_damage: {self.average_monster_damage}")
+        print(f"cum_damage: {self.cum_monster_damage}")
+        print(f"average_block: {self.average_player_block}")
 
 
 TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
@@ -137,6 +145,9 @@ TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
 
 class CombatLog:
     def __init__(self) -> None:
+        self.best_block = [0, None]
+        self.worst_block = [sys.maxsize, None]
+
         self.best_attack = TurnInfo(
             TotalDamage=0, CardsPlayed=None, Damages=[])
         self.worst_attack = TurnInfo(
@@ -147,6 +158,42 @@ class CombatLog:
             self.best_attack = combat
         if total_damage < self.worst_attack.TotalDamage:
             self.worst_attack = combat
+
+    def add_block(self, total_block, cards_played):
+        if total_block > self.best_block[0]:
+            self.best_block = [total_block, cards_played]
+        if total_block < self.worst_block[0]:
+            self.worst_block = [total_block, cards_played]
+
+    def finish(self):
+        print(f"BEST ATTACK: {self.best_attack}")
+        print(f"WORST ATTACK: {self.worst_attack}")
+        print(f"BEST BLOCK: {self.best_block}")
+        print(f"WORST BLOCK: {self.worst_block}")
+
+def get_scaling_damage(coefs, log_coefs, residuals):
+    if abs(residuals) >= 100:
+        return f"O({log_coefs[1]:.2f}*2^n)"
+    else:
+        return format_scaling_damage(coefs)
+
+def get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats):
+    print("curvefit")
+    coefs, residuals, ffit = curve_fit(
+        x_after_first_deck, trial_stats.average_monster_damage[turns_after_first_deck:])
+
+    # logging.debug(f"residuals: r: {residuals}, rlog: {log_residuals}")
+
+    if abs(residuals) >= 100:
+        print("curvefit log")
+        log_coefs, log_residuals, log_ffit = curve_fit(
+            x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
+        ffit = [math.pow(2, y) for y in log_ffit]
+        scaling = f"O({log_coefs[1]:.2f}*2^n)"
+    else:
+        scaling = format_scaling_damage(coefs)
+
+    return ffit, scaling 
 
 
 def main():
@@ -173,8 +220,6 @@ def main():
     combat_log = CombatLog()
     turns = args.turns
     trials = args.trials
-    best_block = [0, None]
-    worst_block = [sys.maxsize, None]
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
         monster = monster_factory()
@@ -186,24 +231,15 @@ def main():
         total_damage = numpy.sum(monster.get_damage())
         combat_log.add_combat(total_damage, TurnInfo(
             total_damage, player.played_cards, monster.get_damage()))
-        if total_block > best_block[0]:
-            best_block = [total_block, player.played_cards]
-        if total_block < worst_block[0]:
-            worst_block = [total_block, player.played_cards]
+        combat_log.add_block(total_block, player.played_cards)
         if trial % 100 == 0:
             print(".", end='', file=sys.stderr, flush=True)
     print("", file=sys.stderr)
-    logger.debug(f"damage: {trial_stats.monster_damage}")
-    logger.debug(f"block: {trial_stats.player_block}")
-    print(f"BEST ATTACK: {combat_log.best_attack}")
-    print(f"WORST ATTACK: {combat_log.worst_attack}")
-    print(f"BEST BLOCK: {best_block}")
-    print(f"WORST BLOCK: {worst_block}")
-
+    combat_log.finish()
     trial_stats.finish_trials()
 
-    average_block = numpy.average(trial_stats.player_block, axis=0)
-    print(f"average damage {trial_stats.average_monster_damage}")
+    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
+
     turns_after_first_deck = 2 * int(len(cards) / 5)
     if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
         turns_after_first_deck = 0
@@ -219,31 +255,16 @@ def main():
         x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
     logging.debug(f"residuals: r: {residuals}, rlog: {log_residuals}")
 
-    frontloaded_damage = get_frontloaded_damage(
-        trial_stats.average_monster_damage)
-    if abs(residuals) >= 100:
-        scaling_damage = f"O({log_coefs[1]:.2f}*2^n)"
-    else:
-        scaling_damage = format_scaling_damage(coefs)
+    frontloaded_damage = get_frontloaded_damage(trial_stats.average_monster_damage)
 
-    print(f"average_damage: {trial_stats.average_monster_damage}")
-    print(f"cum_damage: {trial_stats.cum_monster_damage}")
-    print(f"average_block: {average_block}")
-    print(f"FRONTLOADED DAMAGE: {frontloaded_damage:.2f}")
-    print(
-        f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
+    curve_fit_data, scaling_damage = get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats)
+    print(f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
 
-    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
-    curve_fit_data = ffit if abs(residuals) < 100 else [math.pow(2, y)
-                                                        for y in log_ffit]
     ax0.plot(x_after_first_deck, curve_fit_data, color='gray')
-    # ax0.scatter(x, log_average_damage, s=4, color='purple', marker="_")
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage, 'damage')
-    logging.debug(f"scatter_data: {damage_scatter_data}, {size}")
     ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
-    # ax0.scatter(x, average_damage, s=4, color='gray', marker="_")
     ax0.plot(trial_stats.average_monster_damage,
              linestyle='dotted', linewidth=1, color='grey')
 
@@ -257,8 +278,8 @@ def main():
 
     block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
-    # ax1.scatter(x, average_block, s=8, color='grey', marker="_")
-    ax1.plot(average_block, linestyle='dotted', linewidth=1, color='grey')
+    # ax1.scatter(x, trial_stats.player_block, s=8, color='grey', marker="_")
+    ax1.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
 
     ax0.set_title(
         f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage}) frontload: {frontloaded_damage:.2f}hp scaling: {scaling_damage}', loc='right', fontsize=8)
@@ -269,7 +290,7 @@ def main():
     ax1.set_xlabel('turn')
     ax1.set_ylabel('block')
     ax1.set_title(
-        f'avg block: {numpy.average(average_block):.2f}', loc='right', fontsize=8)
+        f'avg block: {numpy.average(trial_stats.average_player_block):.2f}', loc='right', fontsize=8)
     if len(sys.argv) > 1:
         plt.suptitle(f'strategy: {args.strategy}\n{args.cards}')
     else:
