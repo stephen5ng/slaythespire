@@ -1,5 +1,5 @@
 import logging
-
+import sys
 from enum import Enum, auto
 from typing import Sequence
 
@@ -8,7 +8,7 @@ import numpy
 logger = logging.getLogger("turns").getChild(__name__)
 
 class Monster:
-    def __init__(self, hp=1000) -> None:
+    def __init__(self, hp=sys.maxsize) -> None:
         self._damage = []
         self._turn = 0
         self._vulnerable = 0
