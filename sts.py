@@ -89,11 +89,11 @@ def curve_fit(x, y):
     return coefs, residuals, fit
 
 
-def plot_one_attribute(ax, x, data, size_by_turn, color):
+def plot_one_attribute(ax, data, size_by_turn, color):
     sizes = []
     for i in range(len(data)):
         sizes.append(size_by_turn[i][data[i]])
-    ax.scatter(x[0:len(data)], data, s=sizes, color=color)
+    ax.scatter(range(len(data)), data, s=sizes, color=color)
 
 
 def pad_to_dense(M) -> list:
@@ -186,12 +186,15 @@ def get_scaling_damage(coefs, log_coefs, residuals):
     else:
         return format_scaling_damage(coefs)
 
-def get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats):
-    print("curvefit")
+def get_damage_stats(ax, deck_size, trial_stats):
+    turns_after_first_deck = 2 * int(deck_size / 5)
+    if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
+        turns_after_first_deck = 0
+    x = list(range(len(trial_stats.average_monster_damage)))
+    x_after_first_deck = x[turns_after_first_deck:]
+
     coefs, residuals, ffit = curve_fit(
         x_after_first_deck, trial_stats.average_monster_damage[turns_after_first_deck:])
-
-    # logging.debug(f"residuals: r: {residuals}, rlog: {log_residuals}")
 
     if abs(residuals) >= 100:
         print("curvefit log")
@@ -203,7 +206,10 @@ def get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats):
         scaling = format_scaling_damage(coefs)
 
     print(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
-    return ffit, scaling 
+
+    ax.plot(x_after_first_deck, ffit, color='gray')
+
+    return scaling 
 
 
 def main():
@@ -250,15 +256,7 @@ def main():
 
     fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
 
-    turns_after_first_deck = 2 * int(len(cards) / 5)
-    if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
-        turns_after_first_deck = 0
-    x = list(range(len(trial_stats.average_monster_damage)))
-    x_after_first_deck = x[turns_after_first_deck:]
-
-    curve_fit_data, scaling_damage = get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats)
-
-    ax0.plot(x_after_first_deck, curve_fit_data, color='gray')
+    scaling_damage = get_damage_stats(ax0, len(cards), trial_stats)
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage, 'damage')
@@ -267,9 +265,9 @@ def main():
 
     logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
-    plot_one_attribute(ax0, x, combat_log.best_attack.Damages,
+    plot_one_attribute(ax0, combat_log.best_attack.Damages,
                        damage_by_size_by_turn, 'lime')
-    plot_one_attribute(ax0, x, combat_log.worst_attack.Damages,
+    plot_one_attribute(ax0, combat_log.worst_attack.Damages,
                        damage_by_size_by_turn, 'lightcoral')
 
     block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
