@@ -41,7 +41,7 @@ def create_scatter_plot_data(plot_data):
     hists = []
     sizes_by_value = []
     for turn in range(len(plot_data)):
-        size_by_attribute = {}
+        size_by_value = {}
         turn_attrib = plot_data[turn]
         r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
         hist = numpy.histogram(turn_attrib, bins=r)
@@ -50,10 +50,10 @@ def create_scatter_plot_data(plot_data):
                 scatter_data['turns'].append(turn)
                 scatter_data['value'].append(bin)
                 s = bin_count/(trials/100.0)
-                sizes_by_value[bin] = s
+                size_by_value[bin] = s
                 hists.append(hist)
                 size.append(s)
-        sizes_by_value.append(sizes_by_value)
+        sizes_by_value.append(size_by_value)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"TURN hist: {hist}")
             logger.debug(f"TURN size: {size}")
