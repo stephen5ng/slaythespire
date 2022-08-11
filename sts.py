@@ -139,6 +139,9 @@ class TrialStats:
         print(f"cum_damage: {self.cum_monster_damage}")
         print(f"average_block: {self.average_player_block}")
 
+    def plot_average_damage(self, ax):
+        ax.plot(self.average_monster_damage,
+                 linestyle='dotted', linewidth=1, color='grey')
 
 TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
 
@@ -171,6 +174,12 @@ class CombatLog:
         print(f"BEST BLOCK: {self.best_block}")
         print(f"WORST BLOCK: {self.worst_block}")
 
+    # def plot_damages(self):
+    #     plot_one_attribute(ax0, x, combat_log.best_attack.Damages,
+    #                     damage_by_size_by_turn, 'lime')
+    #     plot_one_attribute(ax0, x, combat_log.worst_attack.Damages,
+    #                     damage_by_size_by_turn, 'lightcoral')
+
 def get_scaling_damage(coefs, log_coefs, residuals):
     if abs(residuals) >= 100:
         return f"O({log_coefs[1]:.2f}*2^n)"
@@ -186,13 +195,14 @@ def get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats):
 
     if abs(residuals) >= 100:
         print("curvefit log")
-        log_coefs, log_residuals, log_ffit = curve_fit(
+        coefs, residuals, log_ffit = curve_fit(
             x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
         ffit = [math.pow(2, y) for y in log_ffit]
-        scaling = f"O({log_coefs[1]:.2f}*2^n)"
+        scaling = f"O({coefs[1]:.2f}*2^n)"
     else:
         scaling = format_scaling_damage(coefs)
 
+    print(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
     return ffit, scaling 
 
 
@@ -246,30 +256,16 @@ def main():
     x = list(range(len(trial_stats.average_monster_damage)))
     x_after_first_deck = x[turns_after_first_deck:]
 
-    print("curvefit")
-    coefs, residuals, ffit = curve_fit(
-        x_after_first_deck, trial_stats.average_monster_damage[turns_after_first_deck:])
-
-    print("curvefit log")
-    log_coefs, log_residuals, log_ffit = curve_fit(
-        x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
-    logging.debug(f"residuals: r: {residuals}, rlog: {log_residuals}")
-
-    frontloaded_damage = get_frontloaded_damage(trial_stats.average_monster_damage)
-
     curve_fit_data, scaling_damage = get_damage_stats(turns_after_first_deck, x_after_first_deck, trial_stats)
-    print(f"SCALING DAMAGE: coefs: {coefs}, log: {log_coefs}, {scaling_damage}")
 
     ax0.plot(x_after_first_deck, curve_fit_data, color='gray')
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage, 'damage')
     ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
-    ax0.plot(trial_stats.average_monster_damage,
-             linestyle='dotted', linewidth=1, color='grey')
+    trial_stats.plot_average_damage(ax0)
 
-    logging.debug(
-        f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+    logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
     plot_one_attribute(ax0, x, combat_log.best_attack.Damages,
                        damage_by_size_by_turn, 'lime')
@@ -278,11 +274,11 @@ def main():
 
     block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
-    # ax1.scatter(x, trial_stats.player_block, s=8, color='grey', marker="_")
     ax1.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
 
     ax0.set_title(
-        f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage}) frontload: {frontloaded_damage:.2f}hp scaling: {scaling_damage}', loc='right', fontsize=8)
+        f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage})'
+        f' frontload: {get_frontloaded_damage(trial_stats.average_monster_damage):.2f}hp scaling: {scaling_damage}', loc='right', fontsize=8)
 
     ax0.set_xlabel('turn')
     ax0.set_ylabel('damage')
