@@ -89,11 +89,11 @@ def curve_fit(x, y):
     return coefs, residuals, fit
 
 
-def plot_one_attribute(ax, data, size_by_turn, color):
+def plot_one_attribute(data, size_by_turn, color):
     sizes = []
     for i in range(len(data)):
         sizes.append(size_by_turn[i][data[i]])
-    ax.scatter(range(len(data)), data, s=sizes, color=color)
+    plt.scatter(range(len(data)), data, s=sizes, color=color)
 
 
 def pad_to_dense(M) -> list:
@@ -216,9 +216,9 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
 
     logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
-    plot_one_attribute(ax0, combat_log.best_attack.Damages,
+    plot_one_attribute(combat_log.best_attack.Damages,
                        damage_by_size_by_turn, 'lime')
-    plot_one_attribute(ax0, combat_log.worst_attack.Damages,
+    plot_one_attribute(combat_log.worst_attack.Damages,
                        damage_by_size_by_turn, 'lightcoral')
 
     plt.title(
