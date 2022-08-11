@@ -139,8 +139,8 @@ class TrialStats:
         print(f"cum_damage: {self.cum_monster_damage}")
         print(f"average_block: {self.average_player_block}")
 
-    def plot_average_damage(self, ax):
-        ax.plot(self.average_monster_damage,
+    def plot_average_damage(self):
+        plt.plot(self.average_monster_damage,
                  linestyle='dotted', linewidth=1, color='grey')
 
 TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
@@ -174,19 +174,13 @@ class CombatLog:
         print(f"BEST BLOCK: {self.best_block}")
         print(f"WORST BLOCK: {self.worst_block}")
 
-    # def plot_damages(self):
-    #     plot_one_attribute(ax0, x, combat_log.best_attack.Damages,
-    #                     damage_by_size_by_turn, 'lime')
-    #     plot_one_attribute(ax0, x, combat_log.worst_attack.Damages,
-    #                     damage_by_size_by_turn, 'lightcoral')
-
 def get_scaling_damage(coefs, log_coefs, residuals):
     if abs(residuals) >= 100:
         return f"O({log_coefs[1]:.2f}*2^n)"
     else:
         return format_scaling_damage(coefs)
 
-def get_damage_stats(ax, deck_size, trial_stats):
+def get_damage_stats(deck_size, trial_stats):
     turns_after_first_deck = 2 * int(deck_size / 5)
     if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
         turns_after_first_deck = 0
@@ -207,17 +201,18 @@ def get_damage_stats(ax, deck_size, trial_stats):
 
     print(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
 
-    ax.plot(x_after_first_deck, ffit, color='gray')
+    plt.plot(x_after_first_deck, ffit, color='gray')
 
     return scaling 
 
-def plot_attack_damage(ax0, trial_stats, combat_log, card_size):
-    scaling_damage = get_damage_stats(ax0, card_size, trial_stats)
+def plot_attack_damage(trial_stats, combat_log, card_size):
+    ax0 = plt.gca()
+    scaling_damage = get_damage_stats(card_size, trial_stats)
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage, 'damage')
-    ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
-    trial_stats.plot_average_damage(ax0)
+    plt.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+    trial_stats.plot_average_damage()
 
     logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
@@ -226,21 +221,21 @@ def plot_attack_damage(ax0, trial_stats, combat_log, card_size):
     plot_one_attribute(ax0, combat_log.worst_attack.Damages,
                        damage_by_size_by_turn, 'lightcoral')
 
-    ax0.set_title(
+    plt.title(
         f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage})'
         f' frontload: {get_frontloaded_damage(trial_stats.average_monster_damage):.2f}hp scaling: {scaling_damage}', loc='right', fontsize=8)
 
-    ax0.set_xlabel('turn')
-    ax0.set_ylabel('damage')
+    plt.xlabel('turn')
+    plt.ylabel('damage')
 
-def plot_player_block(ax1, trial_stats):
+def plot_player_block(trial_stats):
     block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
-    ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
-    ax1.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
+    plt.scatter('turns', 'block', s=size, data=block_scatter_data)
+    plt.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
 
-    ax1.set_xlabel('turn')
-    ax1.set_ylabel('block')
-    ax1.set_title(
+    plt.xlabel('turn')
+    plt.ylabel('block')
+    plt.title(
         f'avg block: {numpy.average(trial_stats.average_player_block):.2f}', loc='right', fontsize=8)
 
 def main():
@@ -282,11 +277,14 @@ def main():
     print("", file=sys.stderr)
     combat_log.finish()
     trial_stats.finish()
+    
+    plt.figure(figsize=(10, 8))
 
-    fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
+    plt.subplot(121)
+    plot_attack_damage(trial_stats, combat_log, len(cards))
 
-    plot_attack_damage(ax0, trial_stats, combat_log, len(cards))
-    plot_player_block(ax1, trial_stats)
+    plt.subplot(122)
+    plot_player_block(trial_stats)
 
     if len(sys.argv) > 1:
         plt.suptitle(f'strategy: {args.strategy}\n{args.cards}')
