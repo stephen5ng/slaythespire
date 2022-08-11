@@ -30,7 +30,15 @@ def get_frontloaded_damage(damage: list, scale=True):
 
 
 def create_scatter_plot_data(plot_data):
-    logging.debug(f"plot_data: {plot_data}")
+    # plot_data is an array of trials, where each trial is an array of values (e.g. damage or block).
+    # returns scatter plot data based on a histogram of the trial data.
+    # create_scatter_plot_data returns:
+    # - scatter_data: a dictionary with two values:
+    #     - turns: array of turn numbers (one per data point)
+    #     - value: array of values (one per histogram bin)
+    # - size: array of sizes (one per data point); sizes are proportional to histogram bucket counts
+    # - sizes_by_value: dictionary of sizes with the value as the key
+    logger.debug(f"plot_data: {plot_data}")
 
     trials = len(plot_data)
     plot_data = numpy.swapaxes(plot_data, 0, 1)
@@ -59,7 +67,7 @@ def create_scatter_plot_data(plot_data):
             logger.debug(f"TURN size: {size}")
             logger.debug(f"TURN scatter_data {scatter_data}")
 
-    logging.debug(f"scatter_data: {scatter_data}, {size}")
+    logger.debug(f"scatter_data: {scatter_data}, {size}, {sizes_by_value}")
 
     return scatter_data, size, sizes_by_value
 
@@ -216,7 +224,7 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
     plt.scatter('turns', 'value', s=size, data=damage_scatter_data)
     trial_stats.plot_average_damage()
 
-    logging.debug(
+    logger.debug(
         f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
     plot_one_attribute(combat_log.best_attack.Damages,
@@ -246,8 +254,8 @@ def plot_player_block(trial_stats):
 
 
 def main():
-    logging.debug(f"starting...")
-    logging.info(f"info starting...")
+    logger.debug(f"starting...")
+    logger.info(f"info starting...")
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
