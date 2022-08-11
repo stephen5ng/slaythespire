@@ -127,7 +127,7 @@ class TrialStats:
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
         self.log_average_monster_damage = [
             math.log(d, 2) for d in self.average_monster_damage]
-    
+
         self.average_player_block = numpy.average(self.player_block, axis=0)
         logger.debug(f"damage: {self.monster_damage}")
         logger.debug(f"block: {self.player_block}")
@@ -138,6 +138,7 @@ class TrialStats:
     def plot_average_damage(self):
         plt.plot(self.average_monster_damage,
                  linestyle='dotted', linewidth=1, color='grey')
+
 
 TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
 
@@ -170,13 +171,15 @@ class CombatLog:
         print(f"BEST BLOCK: {self.best_block}")
         print(f"WORST BLOCK: {self.worst_block}")
 
+
 def get_scaling_damage(coefs, log_coefs, residuals):
     if abs(residuals) >= 100:
         return f"O({log_coefs[1]:.2f}*2^n)"
     else:
         return format_scaling_damage(coefs)
 
-def get_damage_stats(deck_size : int, trial_stats: TrialStats):
+
+def get_damage_stats(deck_size: int, trial_stats: TrialStats):
     # Calculate big-O stats after going through the deck a couple times.
     turns_after_first_deck = 2 * int(deck_size / 5)
     if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
@@ -200,7 +203,8 @@ def get_damage_stats(deck_size : int, trial_stats: TrialStats):
 
     plt.plot(x_after_first_deck, ffit, color='gray')
 
-    return scaling 
+    return scaling
+
 
 def plot_attack_damage(trial_stats, combat_log, card_size):
     scaling_damage = get_damage_stats(card_size, trial_stats)
@@ -210,7 +214,8 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
     plt.scatter('turns', 'value', s=size, data=damage_scatter_data)
     trial_stats.plot_average_damage()
 
-    logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+    logging.debug(
+        f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
 
     plot_one_attribute(combat_log.best_attack.Damages,
                        damage_by_size_by_turn, 'lime')
@@ -224,15 +229,19 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
     plt.xlabel('turn')
     plt.ylabel('damage')
 
+
 def plot_player_block(trial_stats):
-    block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block)
+    block_scatter_data, size, _ = create_scatter_plot_data(
+        trial_stats.player_block)
     plt.scatter('turns', 'value', s=size, data=block_scatter_data)
-    plt.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
+    plt.plot(trial_stats.average_player_block,
+             linestyle='dotted', linewidth=1, color='grey')
 
     plt.xlabel('turn')
     plt.ylabel('block')
     plt.title(
         f'avg block: {numpy.average(trial_stats.average_player_block):.2f}', loc='right', fontsize=8)
+
 
 def main():
     logging.debug(f"starting...")
@@ -273,7 +282,7 @@ def main():
     print("", file=sys.stderr)
     combat_log.finish()
     trial_stats.finish()
-    
+
     plt.figure(figsize=(10, 8))
 
     plt.subplot(121)

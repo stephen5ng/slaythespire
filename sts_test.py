@@ -20,6 +20,18 @@ class TestDamage(unittest.TestCase):
         self.assertEqual("O(7*n + 1*n^2 + 4*n^3)",
                          sts.format_scaling_damage([17, 6.9, 1.3, 4.0]))
 
+    def test_get_frontloaded_damage(self):
+        self.assertEqual(6, sts.get_frontloaded_damage([6]))
+        self.assertEqual(9, sts.get_frontloaded_damage([6, 6]))
+        self.assertEqual(12, sts.get_frontloaded_damage([6, 6], False))
+
+    def test_curve_fit(self):
+        coefficients, residuals, fit = sts.curve_fit(list(range(10)), [2]*10)
+        self.assertAlmostEqual(2.0, coefficients[0])
+        self.assertAlmostEqual(0.0, coefficients[1])
+        self.assertAlmostEqual(0.0, residuals[0])
+        self.assertCountEqual([2.0]*10, fit)
+
 
 if __name__ == '__main__':
     unittest.main()
