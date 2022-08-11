@@ -122,7 +122,7 @@ class TrialStats:
     def add_monster_damage(self, damage: Sequence):
         self.monster_damage.append(damage)
 
-    def finish_trials(self):
+    def finish(self):
         self.monster_damage = pad_to_dense(self.monster_damage)
         self.player_block = pad_to_dense(self.player_block)
 
@@ -211,6 +211,21 @@ def get_damage_stats(ax, deck_size, trial_stats):
 
     return scaling 
 
+def plot_attack_damage(ax0, trial_stats, combat_log, card_size):
+    scaling_damage = get_damage_stats(ax0, card_size, trial_stats)
+
+    damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
+        trial_stats.monster_damage, 'damage')
+    ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+    trial_stats.plot_average_damage(ax0)
+
+    logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+
+    plot_one_attribute(ax0, combat_log.best_attack.Damages,
+                       damage_by_size_by_turn, 'lime')
+    plot_one_attribute(ax0, combat_log.worst_attack.Damages,
+                       damage_by_size_by_turn, 'lightcoral')
+    return scaling_damage
 
 def main():
     logging.debug(f"starting...")
@@ -239,36 +254,22 @@ def main():
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
         monster = monster_factory()
-        logger.debug(f"monster: {monster}")
         player.play_game(monster, turns)
         trial_stats.add_monster_damage(monster.get_damage())
         trial_stats.add_player_block(player.blocks)
-        total_block = numpy.sum(player.blocks)
         total_damage = numpy.sum(monster.get_damage())
         combat_log.add_combat(total_damage, TurnInfo(
             total_damage, player.played_cards, monster.get_damage()))
-        combat_log.add_block(total_block, player.played_cards)
+        combat_log.add_block(numpy.sum(player.blocks), player.played_cards)
         if trial % 100 == 0:
             print(".", end='', file=sys.stderr, flush=True)
     print("", file=sys.stderr)
     combat_log.finish()
-    trial_stats.finish_trials()
+    trial_stats.finish()
 
     fig, (ax0, ax1) = plt.subplots(ncols=2, figsize=(10, 8))  # type: ignore
 
-    scaling_damage = get_damage_stats(ax0, len(cards), trial_stats)
-
-    damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
-        trial_stats.monster_damage, 'damage')
-    ax0.scatter('turns', 'damage', s=size, data=damage_scatter_data)
-    trial_stats.plot_average_damage(ax0)
-
-    logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
-
-    plot_one_attribute(ax0, combat_log.best_attack.Damages,
-                       damage_by_size_by_turn, 'lime')
-    plot_one_attribute(ax0, combat_log.worst_attack.Damages,
-                       damage_by_size_by_turn, 'lightcoral')
+    scaling_damage = plot_attack_damage(ax0, trial_stats, combat_log, len(cards))
 
     block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
     ax1.scatter('turns', 'block', s=size, data=block_scatter_data)
