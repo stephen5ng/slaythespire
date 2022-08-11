@@ -5,12 +5,14 @@ import math
 import sys
 from collections import namedtuple
 from typing import Sequence
-
+from player import DefendingPlayer, AttackingPlayer
+from monster import JawWorm, Monster
 import matplotlib.pyplot as plt
 import numpy
 import numpy.polynomial.polynomial as poly
 
 from deck import Deck
+from card import Card
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 turn_logger = logging.getLogger("turns")
@@ -261,6 +263,8 @@ def main():
     args = argparser.parse_args()
     strategy = eval(args.strategy)
     cards = eval(args.cards)
+
+    logger.debug(f"dynmamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}") # Prevent pyflake from removing thise imports
     monster_factory = eval(args.monster)
 
     trial_stats = TrialStats()

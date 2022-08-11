@@ -7,6 +7,7 @@ from monster import Monster
 
 logger = logging.getLogger("turns").getChild(__name__)
 
+
 class Player:
 
     def __init__(self, deck: Deck, energy: int = 3) -> None:
@@ -43,7 +44,7 @@ class Player:
         logger.debug(f"defend_sort_key: {c}, {k}")
         return k
 
-    def defend(self, attack_damage):
+    def defend(self, attack_damage: float):
         logger.debug(f"defend: {attack_damage}, {self.block}")
         if attack_damage <= self.block:
             self.block -= attack_damage
