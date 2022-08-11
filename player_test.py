@@ -2,8 +2,8 @@ import unittest
 
 from card import Card
 from deck import Deck
+from monster import Monster
 from player import AttackingPlayer
-from sts import Monster
 
 
 class TestPlayer(unittest.TestCase):

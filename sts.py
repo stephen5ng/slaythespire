@@ -9,12 +9,8 @@ from typing import Sequence
 import matplotlib.pyplot as plt
 import numpy
 import numpy.polynomial.polynomial as poly
-import numpy.typing as npt
 
-from card import Card
 from deck import Deck
-from monster import JawWorm, Monster
-from player import AttackingPlayer, DefendingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 turn_logger = logging.getLogger("turns")
@@ -31,17 +27,17 @@ def get_frontloaded_damage(damage: list, scale=True):
     return fld
 
 
-def create_scatter_plot_data(plot_data, attribute):
+def create_scatter_plot_data(plot_data):
+    logging.debug(f"plot_data: {plot_data}")
+
     trials = len(plot_data)
     plot_data = numpy.swapaxes(plot_data, 0, 1)
     scatter_data = {}
     scatter_data['turns'] = []
-    scatter_data[attribute] = []
-    attributes_by_turn = []
+    scatter_data['value'] = []
     size = []
-    logging.debug(f"plot_data: {plot_data}")
     hists = []
-    sizes_by_attribute = []
+    sizes_by_value = []
     for turn in range(len(plot_data)):
         size_by_attribute = {}
         turn_attrib = plot_data[turn]
@@ -50,12 +46,12 @@ def create_scatter_plot_data(plot_data, attribute):
         for bin_count, bin in zip(*hist):
             if bin_count:
                 scatter_data['turns'].append(turn)
-                scatter_data[attribute].append(bin)
+                scatter_data['value'].append(bin)
                 s = bin_count/(trials/100.0)
-                size_by_attribute[bin] = s
+                sizes_by_value[bin] = s
                 hists.append(hist)
                 size.append(s)
-        sizes_by_attribute.append(size_by_attribute)
+        sizes_by_value.append(sizes_by_value)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"TURN hist: {hist}")
             logger.debug(f"TURN size: {size}")
@@ -63,7 +59,7 @@ def create_scatter_plot_data(plot_data, attribute):
 
     logging.debug(f"scatter_data: {scatter_data}, {size}")
 
-    return scatter_data, size, sizes_by_attribute
+    return scatter_data, size, sizes_by_value
 
 
 def format_scaling_damage(coefs):
@@ -180,7 +176,8 @@ def get_scaling_damage(coefs, log_coefs, residuals):
     else:
         return format_scaling_damage(coefs)
 
-def get_damage_stats(deck_size, trial_stats):
+def get_damage_stats(deck_size : int, trial_stats: TrialStats):
+    # Calculate big-O stats after going through the deck a couple times.
     turns_after_first_deck = 2 * int(deck_size / 5)
     if len(trial_stats.average_monster_damage) - turns_after_first_deck < 2:
         turns_after_first_deck = 0
@@ -190,14 +187,14 @@ def get_damage_stats(deck_size, trial_stats):
     coefs, residuals, ffit = curve_fit(
         x_after_first_deck, trial_stats.average_monster_damage[turns_after_first_deck:])
 
-    if abs(residuals) >= 100:
-        print("curvefit log")
+    if abs(residuals) < 100:
+        scaling = format_scaling_damage(coefs)
+    else:
+        # Error too large, assume exponential function.
         coefs, residuals, log_ffit = curve_fit(
             x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
         ffit = [math.pow(2, y) for y in log_ffit]
         scaling = f"O({coefs[1]:.2f}*2^n)"
-    else:
-        scaling = format_scaling_damage(coefs)
 
     print(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
 
@@ -206,12 +203,11 @@ def get_damage_stats(deck_size, trial_stats):
     return scaling 
 
 def plot_attack_damage(trial_stats, combat_log, card_size):
-    ax0 = plt.gca()
     scaling_damage = get_damage_stats(card_size, trial_stats)
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
-        trial_stats.monster_damage, 'damage')
-    plt.scatter('turns', 'damage', s=size, data=damage_scatter_data)
+        trial_stats.monster_damage)
+    plt.scatter('turns', 'value', s=size, data=damage_scatter_data)
     trial_stats.plot_average_damage()
 
     logging.debug(f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
@@ -229,8 +225,8 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
     plt.ylabel('damage')
 
 def plot_player_block(trial_stats):
-    block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block, 'block')
-    plt.scatter('turns', 'block', s=size, data=block_scatter_data)
+    block_scatter_data, size, _ = create_scatter_plot_data(trial_stats.player_block)
+    plt.scatter('turns', 'value', s=size, data=block_scatter_data)
     plt.plot(trial_stats.average_player_block, linestyle='dotted', linewidth=1, color='grey')
 
     plt.xlabel('turn')

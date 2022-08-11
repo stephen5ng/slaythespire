@@ -4,7 +4,7 @@ from monster import JawWorm, JawWormMode
 import sts
 from card import Card
 from deck import Deck
-from sts import Monster
+from monster import Monster
 
 
 class TestMonster(unittest.TestCase):
