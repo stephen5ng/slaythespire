@@ -47,9 +47,9 @@ def create_scatter_plot_data(values_by_trial):
     scatter_data['value'] = []
     size = []
     hists = []
-    sizes_by_value = []
+    sizes_by_value_by_turn = []
     for turn in range(len(values_by_turn)):
-        size_by_value = {}
+        sizes_by_value = {}
         turn_attrib = values_by_turn[turn]
         r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
         hist = numpy.histogram(turn_attrib, bins=r)
@@ -58,18 +58,18 @@ def create_scatter_plot_data(values_by_trial):
                 scatter_data['turns'].append(turn)
                 scatter_data['value'].append(bin)
                 s = bin_count/(trials/100.0)
-                size_by_value[bin] = s
+                sizes_by_value[bin] = s
                 hists.append(hist)
                 size.append(s)
-        sizes_by_value.append(size_by_value)
+        sizes_by_value_by_turn.append(sizes_by_value)
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"TURN hist: {hist}")
             logger.debug(f"TURN size: {size}")
             logger.debug(f"TURN scatter_data {scatter_data}")
 
-    logger.debug(f"scatter_data: {scatter_data}, {size}, {sizes_by_value}")
+    logger.debug(f"scatter_data: {scatter_data}, {size}, {sizes_by_value_by_turn}")
 
-    return scatter_data, size, sizes_by_value
+    return scatter_data, size, sizes_by_value_by_turn
 
 
 def format_scaling_damage(coefs):
