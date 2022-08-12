@@ -32,6 +32,17 @@ class TestDamage(unittest.TestCase):
         self.assertAlmostEqual(0.0, residuals[0])
         self.assertCountEqual([2.0]*10, fit)
 
+    def test_create_scatter_plot_data(self):
+        values_by_trial = [[1, 2, 8], [1, 3, 8]]
+        scatter_data, size, sizes_by_value = sts.create_scatter_plot_data(
+            values_by_trial)
+        print(sts.create_scatter_plot_data(values_by_trial))
+        self.assertEqual({'turns': [0, 1, 1, 2], 'value': [
+                         1, 2, 3, 8]}, scatter_data)
+        self.assertEqual([100.0, 50.0, 50.0, 100.0], size)
+        self.assertEqual([{1: 100.0}, {2: 50.0, 3: 50.0},
+                         {8: 100.0}], sizes_by_value)
+
 
 if __name__ == '__main__':
     unittest.main()

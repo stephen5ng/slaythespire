@@ -29,7 +29,7 @@ def get_frontloaded_damage(damage: list, scale=True):
     return fld
 
 
-def create_scatter_plot_data(plot_data):
+def create_scatter_plot_data(values_by_trial):
     # plot_data is an array of trials, where each trial is an array of values (e.g. damage or block).
     # returns scatter plot data based on a histogram of the trial data.
     # create_scatter_plot_data returns:
@@ -38,19 +38,19 @@ def create_scatter_plot_data(plot_data):
     #     - value: array of values (one per histogram bin)
     # - size: array of sizes (one per data point); sizes are proportional to histogram bucket counts
     # - sizes_by_value: dictionary of sizes with the value as the key
-    logger.debug(f"plot_data: {plot_data}")
+    logger.debug(f"plot_data: {values_by_trial}")
 
-    trials = len(plot_data)
-    plot_data = numpy.swapaxes(plot_data, 0, 1)
+    trials = len(values_by_trial)
+    values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
     scatter_data = {}
     scatter_data['turns'] = []
     scatter_data['value'] = []
     size = []
     hists = []
     sizes_by_value = []
-    for turn in range(len(plot_data)):
+    for turn in range(len(values_by_turn)):
         size_by_value = {}
-        turn_attrib = plot_data[turn]
+        turn_attrib = values_by_turn[turn]
         r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
         hist = numpy.histogram(turn_attrib, bins=r)
         for bin_count, bin in zip(*hist):
