@@ -137,6 +137,8 @@ class Player:
     def play_game(self, monster: Monster, turns: int):
         for turn in range(turns):
             self.play_turn(monster)
+            if not monster.hp:
+                break
         # logger.info(f"damage: {numpy.cumsum(monster.get_damage())}")
         logger.debug(f"damage: {monster.get_damage()}")
 

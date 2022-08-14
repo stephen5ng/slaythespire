@@ -7,6 +7,7 @@ import numpy
 
 logger = logging.getLogger("turns").getChild(__name__)
 
+
 class Monster:
     def __init__(self, hp=sys.maxsize) -> None:
         self._damage = []
@@ -35,8 +36,10 @@ class Monster:
         post_block_damage = damage - self.block
         self.block = 0
 
-        self.hp = max(0, self.hp - post_block_damage)
-        self._damage[self._turn] += post_block_damage
+        post_hp_damage = min(self.hp, post_block_damage)
+        self.hp -= post_hp_damage
+
+        self._damage[self._turn] += post_hp_damage
         logger.debug(
             f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, damage: {attack_damage}->{damage}->{post_block_damage}, hp: {self.hp}")
 

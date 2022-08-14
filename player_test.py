@@ -1,9 +1,15 @@
+import logging
+import logging.config
 import unittest
 
 from card import Card
 from deck import Deck
 from monster import Monster
 from player import AttackingPlayer
+
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
+turn_logger = logging.getLogger("turns")
+logger = logging.getLogger("sts")
 
 
 class TestPlayer(unittest.TestCase):
@@ -119,6 +125,16 @@ class TestPlayer(unittest.TestCase):
         AttackingPlayer(Deck(cards)).play_game(self.monster, 2)
 
         self.assertEqual([18, 18], self.monster.get_damage())
+
+    def test_play_game_monster_dies(self):
+        cards = [Card.DEFEND] + [Card.STRIKE] * 4
+        monster = Monster()
+        deck = Deck(cards)
+        monster.hp = 16
+        AttackingPlayer(deck).play_game(monster, 2)
+
+        self.assertEqual([16], monster.get_damage())
+        self.assertEqual(1, deck._deals)
 
 
 if __name__ == '__main__':
