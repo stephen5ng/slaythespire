@@ -1,6 +1,9 @@
 import logging.config
 import unittest
 
+import numpy
+import numpy.testing
+
 import sts
 from card import Card
 from deck import Deck
@@ -45,6 +48,49 @@ class TestDamage(unittest.TestCase):
         self.assertEqual([100.0, 50.0, 50.0, 100.0], size)
         self.assertEqual([{1: 100.0}, {2: 50.0, 3: 50.0},
                          {8: 100.0}], sizes_by_value)
+
+    def test_histogram_values(self):
+        values_by_trial = [[1, 2, 8], [1, 3, 8]]
+        # hist, bin_edges
+        expected = (([2], [1, 2]),
+                    ([1, 1], [2, 3, 4]),
+                    ([2], [8, 9]))
+        results = sts.histogram(values_by_trial)
+        print(results[0])
+        print(results[1])
+        print(results[2])
+
+        for i in range(len(results)):
+            self.assertCountEqual(expected[i][0], results[i][0])
+            self.assertCountEqual(expected[i][1], results[i][1])
+
+    def test_histogram_values_ragged(self):
+        values_by_trial = [[1, 8], [1, -1], [1, 8]]
+        # hist, bin_edges
+        expected = (([3], [1, 2]),
+                    ([2], [8, 9]))
+        results = sts.histogram(values_by_trial)
+        print(results[0])
+        print(results[1])
+
+        for i in range(len(results)):
+            self.assertCountEqual(expected[i][0], results[i][0])
+            self.assertCountEqual(expected[i][1], results[i][1])
+
+    def test_pad_to_dense(self):
+        result = sts.pad_to_dense(numpy.array([[1, 2], [1]]))
+        numpy.testing.assert_equal(numpy.array([[1, 2], [1, -1]]), result)
+
+    def test_pad_to_dense_empty(self):
+        numpy.testing.assert_equal(numpy.array([]), sts.pad_to_dense([]))
+
+    def test_trial_stats_damage(self):
+        ts = sts.TrialStats()
+        ts.add_monster_damage([1, 1, 2])
+        ts.add_monster_damage([3, 1, -1])
+        ts.finish()
+        numpy.testing.assert_equal(numpy.array(
+            [2, 1, 2]), ts.average_monster_damage)
 
 
 if __name__ == '__main__':

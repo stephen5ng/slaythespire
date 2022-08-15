@@ -29,6 +29,22 @@ def get_frontloaded_damage(damage: list, scale=True):
     return fld
 
 
+def histogram(values_by_trial):
+    logger.debug(f"values_by_trial: {values_by_trial}")
+
+    trials = len(values_by_trial)
+    values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
+    logger.debug(f"values_by_turn {values_by_turn}")
+    hists = []
+    for turn in range(len(values_by_turn)):
+        values = values_by_turn[turn]
+        values = values[values != -1.0]
+        r = range(int(min(values)), 2+int(max(values)))
+        hist = numpy.histogram(values, bins=r)
+        hists.append(hist)
+    return hists
+
+
 def create_scatter_plot_data(values_by_trial):
     # plot_data is an array of trials, where each trial is an array of values (e.g. damage or block).
     # returns scatter plot data based on a histogram of the trial data.
@@ -38,7 +54,7 @@ def create_scatter_plot_data(values_by_trial):
     #     - value: array of values (one per histogram bin)
     # - size: array of sizes (one per data point); sizes are proportional to histogram bucket counts
     # - sizes_by_value: dictionary of sizes with the value as the key
-    logger.debug(f"plot_data: {values_by_trial}")
+    logger.debug(f"values_by_trial: {values_by_trial}")
 
     trials = len(values_by_trial)
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
@@ -48,11 +64,11 @@ def create_scatter_plot_data(values_by_trial):
     size = []
     hists = []
     sizes_by_value_by_turn = []
+    histograms = histogram(values_by_trial)
     for turn in range(len(values_by_turn)):
         sizes_by_value = {}
         turn_attrib = values_by_turn[turn]
-        r = range(int(min(turn_attrib)), 2+int(max(turn_attrib)))
-        hist = numpy.histogram(turn_attrib, bins=r)
+        hist = histograms[turn]
         for bin_count, bin in zip(*hist):
             if bin_count:
                 scatter_data['turns'].append(turn)
@@ -67,7 +83,8 @@ def create_scatter_plot_data(values_by_trial):
             logger.debug(f"TURN size: {size}")
             logger.debug(f"TURN scatter_data {scatter_data}")
 
-    logger.debug(f"scatter_data: {scatter_data}, {size}, {sizes_by_value_by_turn}")
+    logger.debug(
+        f"scatter_data: {scatter_data}, {size}, {sizes_by_value_by_turn}")
 
     return scatter_data, size, sizes_by_value_by_turn
 
@@ -102,17 +119,21 @@ def plot_one_attribute(data, size_by_turn, color):
     plt.scatter(range(len(data)), data, s=sizes, color=color)
 
 
-def pad_to_dense(M) -> list:
-    """Appends the minimal required amount of zeroes at the end of each 
+def pad_to_dense(M):
+    """Appends the minimal required amount of -1's at the end of each 
      array in the jagged array `M`, such that `M` loses its jagedness."""
+
+    if len(M) == 0:
+        return []
 
     maxlen = max(len(r) for r in M)
 
     Z = numpy.zeros((len(M), maxlen))
+    Z -= 1
     for enu, row in enumerate(M):
+        Z[enu, :len(row)] += 1
         Z[enu, :len(row)] += row
-    return Z.tolist()
-
+    return Z
 
 class TrialStats:
     def __init__(self):
@@ -121,9 +142,11 @@ class TrialStats:
         self.monster_damage = []
         self.cum_monster_damage = []
         self.player_block = []
+        self.turns = []
 
     def add_player_block(self, block):
         self.player_block.append(block)
+        self.turns.append(len(block))
 
     def add_monster_damage(self, damage: Sequence):
         self.monster_damage.append(damage)
@@ -132,15 +155,17 @@ class TrialStats:
         self.monster_damage = pad_to_dense(self.monster_damage)
         self.player_block = pad_to_dense(self.player_block)
 
-        self.average_monster_damage = numpy.average(
-            self.monster_damage, axis=0)
+        self.average_monster_damage = []
+        damage_by_turn = numpy.swapaxes(self.monster_damage, 0, 1)
+        for trial in damage_by_turn:
+            self.average_monster_damage += [numpy.average(trial[trial != -1])]
+
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
-        self.log_average_monster_damage = [
-            math.log(d, 2) for d in self.average_monster_damage]
 
         self.average_player_block = numpy.average(self.player_block, axis=0)
-        logger.debug(f"damage: {self.monster_damage}")
-        logger.debug(f"block: {self.player_block}")
+        logger.debug(f"trial_stats damage: {self.monster_damage}")
+        logger.debug(f"trial_stats block: {self.player_block}")
+        logger.debug(f"trial_stats turns: {self.turns}")
         print(f"average_damage: {self.average_monster_damage}")
         print(f"cum_damage: {self.cum_monster_damage}")
         print(f"average_block: {self.average_player_block}")
@@ -204,8 +229,11 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
         scaling = format_scaling_damage(coefs)
     else:
         # Error too large, assume exponential function.
+        log_average_monster_damage = [
+            math.log(d, 2) for d in trial_stats.average_monster_damage]
+
         coefs, residuals, log_ffit = curve_fit(
-            x_after_first_deck, trial_stats.log_average_monster_damage[turns_after_first_deck:])
+            x_after_first_deck, log_average_monster_damage[turns_after_first_deck:])
         ffit = [math.pow(2, y) for y in log_ffit]
         scaling = f"O({coefs[1]:.2f}*2^n)"
 
@@ -272,7 +300,9 @@ def main():
     strategy = eval(args.strategy)
     cards = eval(args.cards)
 
-    logger.debug(f"dynmamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}") # Prevent pyflake from removing thise imports
+    # Prevent pyflake from removing thise imports
+    logger.debug(
+        f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}")
     monster_factory = eval(args.monster)
 
     trial_stats = TrialStats()

@@ -41,7 +41,8 @@ class Monster:
 
         self._damage[self._turn] += post_hp_damage
         logger.debug(
-            f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, damage: {attack_damage}->{damage}->{post_block_damage}, hp: {self.hp}")
+            f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, "
+            f"damage: {attack_damage}->{damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
 
     def vulnerable(self, turns: int) -> None:
         self._vulnerable += turns
