@@ -234,15 +234,17 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
     coefs, residuals, ffit = curve_fit(
         x_after_first_deck, trial_stats.average_monster_damage[turns_after_first_deck:])
 
-    if abs(residuals) < 100:
-        scaling = format_scaling_damage(coefs)
-    else:
-        # Error too large, assume exponential function.
+    scaled_residuals = residuals/len(x_after_first_deck)
+    logger.debug(f"scaled residuals: {scaled_residuals}")
+    scaling = format_scaling_damage(coefs)
+    if abs(scaled_residuals) > 10000:
+        # Error too large, try exponential function.
         log_average_monster_damage = [
             math.log(d, 2) for d in trial_stats.average_monster_damage]
 
-        coefs, residuals, log_ffit = curve_fit(
+        coefs, residuals_log, log_ffit = curve_fit(
             x_after_first_deck, log_average_monster_damage[turns_after_first_deck:])
+        logger.debug(f"residuals: {residuals}, {residuals_log}")
         ffit = [math.pow(2, y) for y in log_ffit]
         scaling = f"O({coefs[1]:.2f}*2^n)"
 
