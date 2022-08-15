@@ -5,15 +5,16 @@ import math
 import sys
 from collections import namedtuple
 from typing import Sequence
-from player import DefendingPlayer, AttackingPlayer
-from monster import JawWorm, Monster
+
 import matplotlib.pyplot as plt
 import numpy
-import numpy.typing
 import numpy.polynomial.polynomial as poly
+import numpy.typing
 
-from deck import Deck
 from card import Card
+from deck import Deck
+from monster import JawWorm, Monster
+from player import AttackingPlayer, DefendingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 turn_logger = logging.getLogger("turns")
