@@ -9,6 +9,7 @@ from player import DefendingPlayer, AttackingPlayer
 from monster import JawWorm, Monster
 import matplotlib.pyplot as plt
 import numpy
+import numpy.typing
 import numpy.polynomial.polynomial as poly
 
 from deck import Deck
@@ -29,10 +30,10 @@ def get_frontloaded_damage(damage: list, scale=True):
     return fld
 
 
-def histogram(values_by_trial):
+def histogram(values_by_trial: numpy.typing.ArrayLike):
     logger.debug(f"values_by_trial: {values_by_trial}")
 
-    trials = len(values_by_trial)
+    trials = values_by_trial.size
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
     logger.debug(f"values_by_turn {values_by_turn}")
     hists = []
@@ -89,7 +90,7 @@ def create_scatter_plot_data(values_by_trial):
     return scatter_data, size, sizes_by_value_by_turn
 
 
-def format_scaling_damage(coefs):
+def format_scaling_damage(coefs: Sequence):
     scaling_damages = tuple([int(round(cc, 0)) for cc in coefs[1:]])
     while scaling_damages and not scaling_damages[-1]:
         scaling_damages = scaling_damages[:-1]
@@ -143,6 +144,7 @@ class TrialStats:
         self.cum_monster_damage = []
         self.player_block = []
         self.turns = []
+        self.player_final_hp = []
 
     def add_player_block(self, block):
         self.player_block.append(block)
@@ -150,6 +152,9 @@ class TrialStats:
 
     def add_monster_damage(self, damage: Sequence):
         self.monster_damage.append(damage)
+
+    def add_player_hp(self, hp):
+        self.player_final_hp += [hp]
 
     def finish(self):
         self.monster_damage = pad_to_dense(self.monster_damage)
@@ -163,9 +168,12 @@ class TrialStats:
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
 
         self.average_player_block = numpy.average(self.player_block, axis=0)
+
+
         logger.debug(f"trial_stats damage: {self.monster_damage}")
         logger.debug(f"trial_stats block: {self.player_block}")
         logger.debug(f"trial_stats turns: {self.turns}")
+        logger.debug(f"trial_stats player_final_hp: {self.player_final_hp}")
         print(f"average_damage: {self.average_monster_damage}")
         print(f"cum_damage: {self.cum_monster_damage}")
         print(f"average_block: {self.average_player_block}")
@@ -244,7 +252,7 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
     return scaling
 
 
-def plot_attack_damage(trial_stats, combat_log, card_size):
+def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size):
     scaling_damage = get_damage_stats(card_size, trial_stats)
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
@@ -268,7 +276,7 @@ def plot_attack_damage(trial_stats, combat_log, card_size):
     plt.ylabel('damage')
 
 
-def plot_player_block(trial_stats):
+def plot_player_block(trial_stats: TrialStats):
     block_scatter_data, size, _ = create_scatter_plot_data(
         trial_stats.player_block)
     plt.scatter('turns', 'value', s=size, data=block_scatter_data)
@@ -280,6 +288,10 @@ def plot_player_block(trial_stats):
     plt.title(
         f'avg block: {numpy.average(trial_stats.average_player_block):.2f}', loc='right', fontsize=8)
 
+def plot_player_hp(trial_stats: TrialStats):
+    plt.xlabel('final player hp')
+    plt.ylabel('trials')
+    plt.hist(trial_stats.player_final_hp)
 
 def main():
     logger.debug(f"starting...")
@@ -315,6 +327,7 @@ def main():
         player.play_game(monster, turns)
         trial_stats.add_monster_damage(monster.get_damage())
         trial_stats.add_player_block(player.blocks)
+        trial_stats.add_player_hp(player.hp)
         total_damage = numpy.sum(monster.get_damage())
         combat_log.add_combat(total_damage, TurnInfo(
             total_damage, player.played_cards, monster.get_damage()))
@@ -327,10 +340,13 @@ def main():
 
     plt.figure(figsize=(10, 8))
 
-    plt.subplot(121)
+    plt.subplot(131)
     plot_attack_damage(trial_stats, combat_log, len(cards))
 
-    plt.subplot(122)
+    plt.subplot(132)
+    plot_player_hp(trial_stats)
+
+    plt.subplot(133)
     plot_player_block(trial_stats)
 
     if len(sys.argv) > 1:
