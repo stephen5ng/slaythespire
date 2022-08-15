@@ -37,7 +37,7 @@ class TestPlayer(unittest.TestCase):
         deck = Deck(cards)
         AttackingPlayer(deck).play_turn(monster)
 
-        self.assertEqual([12], monster.get_damage())
+        self.assertEqual([10], monster.get_damage())
 
     def test_play_turn_strike_bonus(self):
         cards = [Card.PERFECTED_STRIKE] + [Card.STRIKE] * 4
