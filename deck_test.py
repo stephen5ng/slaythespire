@@ -1,7 +1,10 @@
+import logging.config
 import unittest
 
 from card import Card
 from deck import Deck
+
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
 
 class TestDeck(unittest.TestCase):

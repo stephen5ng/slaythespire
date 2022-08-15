@@ -1,11 +1,12 @@
+import logging.config
 import unittest
-from monster import JawWorm, JawWormMode
 
 import sts
 from card import Card
 from deck import Deck
-from monster import Monster
+from monster import JawWorm, JawWormMode, Monster
 
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
 class TestMonster(unittest.TestCase):
     def test_defend(self):

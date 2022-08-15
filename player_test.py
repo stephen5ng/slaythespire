@@ -8,10 +8,6 @@ from monster import Monster
 from player import AttackingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
-turn_logger = logging.getLogger("turns")
-logger = logging.getLogger("sts")
-
-
 class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()

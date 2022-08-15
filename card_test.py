@@ -1,7 +1,9 @@
+import logging.config
 import unittest
 
 from card import Card
 
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
 class TestCards(unittest.TestCase):
     def test_card(self):

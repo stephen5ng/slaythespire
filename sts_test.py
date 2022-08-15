@@ -1,9 +1,12 @@
+import logging.config
 import unittest
 
 import sts
 from card import Card
 from deck import Deck
 from monster import Monster
+
+logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
 
 class TestDamage(unittest.TestCase):
