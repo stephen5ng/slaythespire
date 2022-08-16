@@ -13,7 +13,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from card import Card
+from card import Card, IRONCLAD_STARTER
 from deck import Deck
 from monster import JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
@@ -321,13 +321,15 @@ def main():
         '--turns', help='number of turns', type=int, default=20)
     argparser.add_argument(
         '--monster', help='monster to fight', default='Monster')
+    argparser.add_argument(
+        '--write', help='write chart to disk', action="store_true")
     args = argparser.parse_args()
     strategy = eval(args.strategy)
     cards = eval(args.cards)
 
     # Prevent pyflake from removing thise imports
     logger.debug(
-        f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}")
+        f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}, {Card}, {IRONCLAD_STARTER}")
     monster_factory = eval(args.monster)
 
     trial_stats = TrialStats()
@@ -375,7 +377,9 @@ def main():
     fig.update_layout(title_font_size=18)
     fig.update_layout(title_x=0.5)
     fig.update_annotations(font_size=12)
-    fig.write_html(f"charts/{' '.join(sys.argv[1:])}.html")
+    if args.write:
+        filename = f"charts/{' '.join(sys.argv[1:]).replace('--write', '').strip()}.html"
+        fig.write_html(filename)
     logger.debug(f"fig: {fig}")
 
     fig.show()
