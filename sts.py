@@ -302,7 +302,7 @@ def plot_player_block(trial_stats: TrialStats):
 
 
 def plot_player_hp(trial_stats: TrialStats):
-    px.histogram(trial_stats.player_final_hp).show()
+    # px.histogram(trial_stats.player_final_hp).show()
     return [go.Histogram(y=trial_stats.player_final_hp)], "player hp"
 
 
@@ -351,23 +351,25 @@ def main():
     combat_log.finish()
     trial_stats.finish()
 
-    attack_damage_traces, attack_title = plot_attack_damage(
-        trial_stats, combat_log, len(cards))
+    traces_and_titles = []
 
-    player_hp_traces, player_hp_title = plot_player_hp(trial_stats)
+    traces_and_titles.append(plot_attack_damage(
+        trial_stats, combat_log, len(cards)))
 
-    block_traces, block_title = plot_player_block(trial_stats)
+    if min(trial_stats.player_final_hp) != max(trial_stats.player_final_hp):
+        traces_and_titles.append(plot_player_hp(trial_stats))
+
+    traces_and_titles.append(plot_player_block(trial_stats))
+
     title = "IRONCLAD BASE" if len(
         sys.argv) <= 1 else f'strategy: {args.strategy}<br><sup>{args.cards}</sup>'
+    titles = [t[1] for t in traces_and_titles]
 
-    fig = make_subplots(rows=1, cols=3, subplot_titles=[
-                        attack_title, block_title, player_hp_title])
-    fig.add_traces(attack_damage_traces, cols=[
-                   1]*len(attack_damage_traces), rows=[1]*len(attack_damage_traces))
-    fig.add_traces(block_traces, rows=[
-                   1]*len(block_traces), cols=[2]*len(block_traces))
-    fig.add_traces(player_hp_traces, rows=[
-                   1]*len(player_hp_traces), cols=[3]*len(player_hp_traces))
+    fig = make_subplots(rows=1, cols=len(
+        traces_and_titles), subplot_titles=titles)
+    for i, trace_and_title in enumerate(traces_and_titles, 1):
+        traces = trace_and_title[0]
+        fig.add_traces(traces, cols=[i]*len(traces), rows=[1]*len(traces))
 
     fig.update_layout(title_text=title)
     fig.update_layout(title_font_size=18)
