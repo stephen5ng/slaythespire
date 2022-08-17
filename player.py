@@ -10,7 +10,8 @@ logger = logging.getLogger("turns").getChild(__name__)
 
 class Player:
 
-    def __init__(self, deck: Deck, energy: int = 3) -> None:
+    def __init__(self, deck: Deck, energy: int = 3, hp: int = 70) -> None:
+        self._vulnerable = 0
         self.deck = deck
         self.energy = energy
         self.block = 0
