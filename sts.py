@@ -309,7 +309,6 @@ def plot_player_block(trial_stats: TrialStats):
 
 
 def plot_player_hp(trial_stats: TrialStats):
-    # px.histogram(trial_stats.player_final_hp).show()
     return [go.Histogram(y=trial_stats.player_final_hp)], "player hp"
 
 
@@ -372,7 +371,7 @@ def main():
     traces_and_titles.append(plot_player_block(trial_stats))
 
     title = "IRONCLAD BASE" if len(
-        sys.argv) <= 1 else f'strategy: {args.strategy}<sup><br>{args.cards}</sup>'
+        sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
     titles = [t[1] for t in traces_and_titles]
 
     fig = make_subplots(rows=1, cols=len(
