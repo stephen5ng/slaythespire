@@ -67,6 +67,12 @@ class Player(Character):
         while card_to_play:
             if not monster.hp:
                 return played_cards
+            if self.block >= monster.attack() and card_to_play.block > 0:
+                logger.info(f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
+                self.deck.discard([card_to_play])
+
+                card_to_play = self.select_card_to_play(energy)
+                continue
             logger.info(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy

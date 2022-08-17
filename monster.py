@@ -14,12 +14,13 @@ class Monster(Character):
     def __init__(self, hp=sys.maxsize) -> None:
         super().__init__(hp=hp)
         self._damage = []
+        self.planned_damage = 0
 
     def begin_turn(self):
         pass
 
-    def attack(self):
-        pass
+    def attack(self) -> int:
+        return self.planned_damage
 
     def defend(self, attack_damage: int) -> None:
         post_hp_damage = super().defend(attack_damage)

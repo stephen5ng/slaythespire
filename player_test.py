@@ -4,8 +4,8 @@ import unittest
 
 from card import Card
 from deck import Deck
-from monster import Monster, JawWorm
-from player import AttackingPlayer
+from monster import JawWorm, Monster
+from player import AttackingPlayer, DefendingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 class TestPlayer(unittest.TestCase):
@@ -36,6 +36,18 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual([
             Card.ANGER, Card.ANGER, Card.STRIKE, Card.STRIKE, Card.STRIKE, Card.STRIKE
         ], deck.discards)
+
+    def test_play_turn_with_block(self):
+        monster = Monster(hp=20)
+        monster.planned_damage = 3
+
+        cards = [Card.DEFEND] * 3 + [Card.STRIKE] * 2
+        deck = Deck(cards)
+        p = DefendingPlayer(deck, hp=8)
+        p.play_turn(monster)
+
+        self.assertEqual([12], monster.get_damage())
+        self.assertEqual(8, p.hp)
 
     def test_play_turn_until_monster_dead(self):
         monster = JawWorm()
