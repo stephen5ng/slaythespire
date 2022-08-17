@@ -2,25 +2,24 @@ import logging
 from typing import Union
 
 from card import Card
+from character import Character
 from deck import Deck
 from monster import Monster
 
 logger = logging.getLogger("turns").getChild(__name__)
 
 
-class Player:
+class Player(Character):
 
     def __init__(self, deck: Deck, energy: int = 3, hp: int = 70) -> None:
-        self._vulnerable = 0
+        super().__init__(hp=hp)
         self.deck = deck
         self.energy = energy
-        self.block = 0
         self.blocks = []
         self.played_cards = []
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
-        self.hp = hp
 
     @staticmethod
     def _sort_key(c: Card):
@@ -44,26 +43,6 @@ class Player:
              c.block)
         logger.debug(f"defend_sort_key: {c}, {k}")
         return k
-
-    def defend(self, attack_damage: float):
-        logger.info(f"defend({attack_damage}) hp: {self.hp}, block: {self.block}")
-        if attack_damage <= self.block:
-            self.block -= attack_damage
-            return
-
-        post_vulnerable_damage = int(attack_damage * (1.5 if self._vulnerable else 1.0))
-
-        post_block_damage = post_vulnerable_damage - self.block
-        self.block = 0
-
-        post_hp_damage = min(self.hp, post_block_damage)
-        self.hp -= post_hp_damage
-        if not self.hp:
-            logger.info("PLAYER DIED")
-
-        logger.info(
-            f"...defend() block: {self.block},"
-            f" damage: {attack_damage}->{post_vulnerable_damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
         for card in self.deck.hand:
