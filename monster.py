@@ -13,12 +13,7 @@ logger = logging.getLogger("turns").getChild(__name__)
 class Monster(Character):
     def __init__(self, hp=sys.maxsize) -> None:
         super().__init__(hp=hp)
-
         self._damage = []
-        self._turn = 0
-        self._vulnerable = 0
-        self.block = 0
-        self.hp = hp
 
     def begin_turn(self):
         pass
@@ -49,9 +44,8 @@ class JawWormMode(Enum):
 
 class JawWorm(Monster):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(hp=40)
         self.strength = 0
-        self.hp = 40
         self._mode = JawWormMode.CHOMP
 
     def _get_next_mode(self):
