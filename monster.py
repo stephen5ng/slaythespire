@@ -35,6 +35,10 @@ class Monster(Character):
     def get_damage(self) -> Sequence:
         return self._damage
 
+    def end_turn(self):
+        super().end_turn()
+        logger.info(f"damage: {self._damage}")
+
 
 class JawWormMode(Enum):
     CHOMP = auto()
