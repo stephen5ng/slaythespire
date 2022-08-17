@@ -369,7 +369,7 @@ def main():
     traces_and_titles.append(plot_player_block(trial_stats))
 
     title = "IRONCLAD BASE" if len(
-        sys.argv) <= 1 else f'strategy: {args.strategy}<br><sup>{args.cards}</sup>'
+        sys.argv) <= 1 else f'strategy: {args.strategy}<sup><br>{args.cards}</sup>'
     titles = [t[1] for t in traces_and_titles]
 
     fig = make_subplots(rows=1, cols=len(
