@@ -8,13 +8,15 @@ from monster import JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
+
+
 class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()
-        
+
     def testDefend(self):
         deck = Deck([Card.DEFEND] + [Card.STRIKE] * 4)
-        p = AttackingPlayer(deck, hp = 10)
+        p = AttackingPlayer(deck, hp=10)
         p.defend(4)
 
         self.assertEquals(6, p.hp)
@@ -164,6 +166,7 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual([18], monster.get_damage())
         self.assertEqual(1, deck._deals)
         self.assertEquals(0, p.hp)
+
 
 if __name__ == '__main__':
     unittest.main()

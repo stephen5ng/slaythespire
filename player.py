@@ -59,10 +59,11 @@ class Player(Character):
 
     def _play_hand(self, monster: Monster):
         self.deck.sort_hand(self._sort_key)
+        logger.info(f"Sorted: {self.deck.hand}")
 
         energy = self.energy
         played_cards = []
-
+        logger.info(f"incoming attack: {monster.attack()}")
         card_to_play = self.select_card_to_play(energy)
         while card_to_play:
             if not monster.hp:
