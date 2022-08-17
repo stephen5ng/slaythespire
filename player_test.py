@@ -4,14 +4,14 @@ import unittest
 
 from card import Card
 from deck import Deck
-from monster import Monster
+from monster import Monster, JawWorm
 from player import AttackingPlayer
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()
-
+        
     def testDefend(self):
         deck = Deck([Card.DEFEND] + [Card.STRIKE] * 4)
         p = AttackingPlayer(deck, hp = 10)
@@ -38,13 +38,16 @@ class TestPlayer(unittest.TestCase):
         ], deck.discards)
 
     def test_play_turn_until_monster_dead(self):
-        monster = Monster(10)
+        monster = JawWorm()
+        monster.hp = 10
 
         cards = [Card.STRIKE] * 5
         deck = Deck(cards)
-        AttackingPlayer(deck).play_turn(monster)
+        p = AttackingPlayer(deck, hp=8)
+        p.play_turn(monster)
 
         self.assertEqual([10], monster.get_damage())
+        self.assertEqual(8, p.hp)
 
     def test_play_turn_strike_bonus(self):
         cards = [Card.PERFECTED_STRIKE] + [Card.STRIKE] * 4
