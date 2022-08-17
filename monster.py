@@ -23,6 +23,9 @@ class Monster:
         pass
 
     def defend(self, attack_damage: int) -> None:
+        logger.info(
+            f"defend({attack_damage}) block: {self.block}, vulnerable: {self._vulnerable}, hp: {self.hp}")
+
         array_gap = 1 + self._turn - len(self._damage)
         if array_gap:
             self._damage.extend([0]*array_gap)
@@ -37,19 +40,21 @@ class Monster:
         self.hp -= post_hp_damage
 
         self._damage[self._turn] += post_hp_damage
-        logger.debug(
-            f"{self._turn}: defend() block: {self.block}, vuln: {self._vulnerable}, "
-            f"damage: {attack_damage}->{damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
+        logger.info(
+            f"...defend() block: {self.block},"
+            f" damage: {attack_damage}->{post_vulnerable_damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
+        if not self.hp:
+            logger.info("MONSTER DIED")
 
     def vulnerable(self, turns: int) -> None:
         self._vulnerable += turns
-        logger.debug(
-            f"{self._turn}: vulnerable({turns}), vuln: {self._vulnerable}")
+        logger.debug(f"vulnerable({turns}), vulnerable: {self._vulnerable}")
 
     def end_turn(self):
         if self._vulnerable > 0:
             self._vulnerable -= 1
         self._turn += 1
+        logger.info(f"damage: {self.get_damage()}")
 
     def get_damage(self) -> Sequence:
         return self._damage
@@ -82,7 +87,7 @@ class JawWorm(Monster):
             damage = 12 + self.strength
         if self._mode == JawWormMode.BELLOW:
             damage = 7 + self.strength
-        logger.debug(f"JawWorm attack() damage: {damage}")
+        logger.debug(f"JawWorm attack() --> {damage}")
         return damage
 
     def end_turn(self):

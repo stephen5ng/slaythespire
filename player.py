@@ -46,7 +46,7 @@ class Player:
         return k
 
     def defend(self, attack_damage: float):
-        logger.debug(f"defend: {attack_damage}, {self.block}")
+        logger.info(f"defend({attack_damage}) hp: {self.hp}, block: {self.block}")
         if attack_damage <= self.block:
             self.block -= attack_damage
             return
@@ -58,8 +58,12 @@ class Player:
 
         post_hp_damage = min(self.hp, post_block_damage)
         self.hp -= post_hp_damage
+        if not self.hp:
+            logger.info("PLAYER DIED")
+
         logger.info(
-            f"taking damge {attack_damage}, block: {self.block}, hp: {self.hp}")
+            f"...defend() block: {self.block},"
+            f" damage: {attack_damage}->{post_vulnerable_damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
         for card in self.deck.hand:
@@ -84,7 +88,7 @@ class Player:
         while card_to_play:
             if not monster.hp:
                 return played_cards
-            logger.debug(f"playing card: {card_to_play}")
+            logger.info(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
             if card_to_play.exhausts:
@@ -139,15 +143,16 @@ class Player:
             self.post_strength_debuff_once = 0
 
         monster.end_turn()
-        logger.info(f"damage: {monster.get_damage()}")
 
     def play_game(self, monster: Monster, turns: int):
+        logger.info(f"GAME START player.hp: {self.hp}, monster.hp: {monster.hp}")
         for turn in range(turns):
+            logger.info(f"***** TURN {turn} ******")
             self.play_turn(monster)
             if not monster.hp or not self.hp:
                 break
-        # logger.info(f"damage: {numpy.cumsum(monster.get_damage())}")
-        logger.debug(f"damage: {monster.get_damage()}")
+        logger.info(
+            f"GAME END player.hp: {self.hp} monster.hp: {monster.hp}, damage: {monster.get_damage()}")
 
 
 class DefendingPlayer(Player):

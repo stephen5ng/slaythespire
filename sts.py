@@ -178,8 +178,8 @@ class TrialStats:
         self.average_monster_damage = []
         if self.monster_damage:
             damage_by_turn = numpy.swapaxes(self.monster_damage_dense, 0, 1)
-        for trial in damage_by_turn:
-            self.average_monster_damage += [numpy.average(trial[trial != -1])]
+            for trial in damage_by_turn:
+                self.average_monster_damage += [numpy.average(trial[trial != -1])]
 
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
 
@@ -275,6 +275,8 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
                                damage_by_size_by_turn, 'lightcoral', 'worst')
 
     traces = [go.Scatter(opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='markers',
+                         #  marker_line_color="midnightblue",
+                         #  marker_symbol='cross',
                          marker=dict(
         size=size,
         sizemode='area',
@@ -341,6 +343,7 @@ def main():
     combat_log = CombatLog()
     turns = args.turns
     trials = args.trials
+
     for trial in range(trials):
         player = strategy(Deck(cards, seed=trial))
         monster = monster_factory()

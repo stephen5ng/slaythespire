@@ -28,8 +28,9 @@ class Deck:
             if self._discards:
                 self._deck = self._discards.copy()
                 self._discards = []
-                logger.info(f"shuffling... {self}")
+                logger.info(f"shuffling...")
                 numpy.random.shuffle(self._deck)
+                logger.debug(f"{self}")
 
         if not self._deck:
             return None
@@ -47,7 +48,8 @@ class Deck:
             count -= 1
             cards.append(card)
 
-        logger.info(f"{self._deals} dealt {self}")
+        logger.debug(f"deals: {self._deals}, dealt {self}")
+        logger.info(f"hand {self.hand}")
 
         self._deals += 1
         return cards
