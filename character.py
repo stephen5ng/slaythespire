@@ -31,7 +31,7 @@ class Character:
             f"{self.__class__.__name__} ...defend() block: {self.block},"
             f" damage: {attack_damage}->{post_vulnerable_damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
         if not self.hp:
-            logger.info("CHARACTER DIED")
+            logger.info(f"{self.__class__.__name__} DIED")
         return post_hp_damage
 
     def vulnerable(self, turns: int) -> None:

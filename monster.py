@@ -30,8 +30,6 @@ class Monster(Character):
             self._damage.extend([0]*array_gap)
 
         self._damage[self._turn] += post_hp_damage
-        if not self.hp:
-            logger.info("MONSTER DIED")
 
     def get_damage(self) -> Sequence:
         return self._damage
