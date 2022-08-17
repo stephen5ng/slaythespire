@@ -12,6 +12,13 @@ class TestPlayer(unittest.TestCase):
     def setUp(self):
         self.monster = Monster()
 
+    def testDefend(self):
+        deck = Deck([Card.DEFEND] + [Card.STRIKE] * 4)
+        p = AttackingPlayer(deck, hp = 10)
+        p.defend(4)
+
+        self.assertEquals(6, p.hp)
+
     def test_play_turn(self):
         cards = [Card.DEFEND] + [Card.STRIKE] * 4
         deck = Deck(cards)
@@ -132,6 +139,16 @@ class TestPlayer(unittest.TestCase):
         self.assertEqual([16], monster.get_damage())
         self.assertEqual(1, deck._deals)
 
+    def test_play_game_player_dies(self):
+        cards = [Card.DEFEND] + [Card.STRIKE] * 4
+        monster = JawWorm()
+        deck = Deck(cards)
+        p = AttackingPlayer(deck, hp=8)
+        p.play_game(monster, 2)
+
+        self.assertEqual([18], monster.get_damage())
+        self.assertEqual(1, deck._deals)
+        self.assertEquals(0, p.hp)
 
 if __name__ == '__main__':
     unittest.main()

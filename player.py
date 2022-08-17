@@ -19,7 +19,7 @@ class Player:
         self.strength = 0
         self.strength_buff = 0
         self.post_strength_debuff_once = 0
-        self.hp = 70
+        self.hp = hp
 
     @staticmethod
     def _sort_key(c: Card):
@@ -49,8 +49,14 @@ class Player:
         if attack_damage <= self.block:
             self.block -= attack_damage
             return
-        self.hp -= (attack_damage - self.block)
+
+        post_vulnerable_damage = int(attack_damage * (1.5 if self._vulnerable else 1.0))
+
+        post_block_damage = post_vulnerable_damage - self.block
         self.block = 0
+
+        post_hp_damage = min(self.hp, post_block_damage)
+        self.hp -= post_hp_damage
         logger.info(
             f"taking damge {attack_damage}, block: {self.block}, hp: {self.hp}")
 
@@ -123,10 +129,10 @@ class Player:
         self.deck.deal(5)
         self.played_cards.append(self._play_hand(monster))
         logger.info(f"Played: {self.played_cards[-1]}")
-
-        attack = monster.attack()
-        if attack:
-            self.defend(attack)
+        if monster.hp:
+            attack = monster.attack()
+            if attack:
+                self.defend(attack)
         if self.post_strength_debuff_once:
             self.strength -= self.post_strength_debuff_once
             self.post_strength_debuff_once = 0
@@ -137,7 +143,7 @@ class Player:
     def play_game(self, monster: Monster, turns: int):
         for turn in range(turns):
             self.play_turn(monster)
-            if not monster.hp:
+            if not monster.hp or not self.hp:
                 break
         # logger.info(f"damage: {numpy.cumsum(monster.get_damage())}")
         logger.debug(f"damage: {monster.get_damage()}")
