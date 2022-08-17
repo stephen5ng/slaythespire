@@ -90,10 +90,9 @@ class TestJawWorm(unittest.TestCase):
         jw = JawWormForTesting()
         jw.next_mode = JawWormMode.BELLOW
         jw.end_turn()
-        self.assertEqual(11, jw.attack())
+        self.assertEqual(0, jw.attack())
         self.assertEqual(6, jw.block)
         self.assertEqual(4, jw.strength)
-        self.assertEqual(11, jw.attack())
 
     def test_strength(self):
         jw = JawWormForTesting()
@@ -144,6 +143,16 @@ class TestJawWorm(unittest.TestCase):
         jw.end_turn()
         self.assertEqual(0, jw.block)
 
+    def test_generate_mode(self):
+        jw = JawWorm()
+        for i in range(50):
+            jw.end_turn()
+        modes = ''.join([m.name for m in jw._modes])
+        print(f"MODES: {modes}")
+        self.assertNotIn('BELLOWBELLOW', modes)
+        self.assertNotIn('THRASHTHRASHTHRASH', modes)
+        self.assertIn('THRASHTHRASH', modes)
+        self.assertNotIn('CHOMPCHOMP', modes)
 
 if __name__ == '__main__':
     unittest.main()
