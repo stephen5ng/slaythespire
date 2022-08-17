@@ -8,62 +8,6 @@ from monster import JawWorm, JawWormMode, Monster
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
-class TestMonster(unittest.TestCase):
-    def test_defend(self):
-        monster = Monster()
-        initial_hp = monster.hp
-        monster.begin_turn()
-        monster.defend(5)
-
-        self.assertEqual([5], monster.get_damage())
-        self.assertEqual(initial_hp - 5, monster.hp)
-
-    def test_death_exact(self):
-        monster = Monster(8)
-        monster.block = 4
-        monster.begin_turn()
-        monster.defend(12)
-
-        self.assertEqual(0, monster.hp)
-        self.assertEqual([8], monster.get_damage())
-
-    def test_death_overshoot(self):
-        monster = Monster(8)
-        monster.block = 4
-        monster.begin_turn()
-        monster.defend(20)
-
-        self.assertEqual(0, monster.hp)
-        self.assertEqual([8], monster.get_damage())
-
-    def test_blocked(self):
-        monster = Monster(8)
-        monster.block = 10
-        initial_hp = monster.hp
-        monster.begin_turn()
-        monster.defend(7)
-
-        self.assertEqual(8, monster.hp)
-        self.assertEqual([0], monster.get_damage())
-
-    def test_vulnerable(self):
-        monster = Monster()
-
-        monster.begin_turn()
-        monster.vulnerable(2)
-        monster.defend(8)
-        monster.end_turn()
-
-        monster.begin_turn()
-        monster.defend(8)
-        monster.end_turn()
-
-        monster.begin_turn()
-        monster.defend(8)
-        monster.end_turn()
-
-        self.assertEqual([12, 12, 8], monster.get_damage())
-
 
 class JawWormForTesting(JawWorm):
     def __init__(self) -> None:
@@ -153,6 +97,7 @@ class TestJawWorm(unittest.TestCase):
         self.assertNotIn('THRASHTHRASHTHRASH', modes)
         self.assertIn('THRASHTHRASH', modes)
         self.assertNotIn('CHOMPCHOMP', modes)
+
 
 if __name__ == '__main__':
     unittest.main()
