@@ -27,14 +27,11 @@ class Monster:
         if array_gap:
             self._damage.extend([0]*array_gap)
 
-        damage = int(attack_damage * (1.5 if self._vulnerable else 1.0))
+        post_vulnerable_damage = int(
+            attack_damage * (1.5 if self._vulnerable else 1.0))
 
-        if damage <= self.block:
-            self.block -= damage
-            return
-
-        post_block_damage = damage - self.block
-        self.block = 0
+        post_block_damage = max(0, post_vulnerable_damage - self.block)
+        self.block = max(0, self.block - post_vulnerable_damage)
 
         post_hp_damage = min(self.hp, post_block_damage)
         self.hp -= post_hp_damage

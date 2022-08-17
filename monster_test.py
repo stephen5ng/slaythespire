@@ -18,13 +18,33 @@ class TestMonster(unittest.TestCase):
         self.assertEqual([5], monster.get_damage())
         self.assertEqual(initial_hp - 5, monster.hp)
 
-    def test_death(self):
-        monster = Monster()
-        initial_hp = monster.hp
+    def test_death_exact(self):
+        monster = Monster(8)
+        monster.block = 4
         monster.begin_turn()
-        monster.defend(initial_hp+10)
+        monster.defend(12)
 
         self.assertEqual(0, monster.hp)
+        self.assertEqual([8], monster.get_damage())
+
+    def test_death_overshoot(self):
+        monster = Monster(8)
+        monster.block = 4
+        monster.begin_turn()
+        monster.defend(20)
+
+        self.assertEqual(0, monster.hp)
+        self.assertEqual([8], monster.get_damage())
+
+    def test_blocked(self):
+        monster = Monster(8)
+        monster.block = 10
+        initial_hp = monster.hp
+        monster.begin_turn()
+        monster.defend(7)
+
+        self.assertEqual(8, monster.hp)
+        self.assertEqual([0], monster.get_damage())
 
     def test_vulnerable(self):
         monster = Monster()
