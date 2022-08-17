@@ -39,7 +39,7 @@ class TestDamage(unittest.TestCase):
         self.assertCountEqual([2.0]*10, fit)
 
     def test_create_scatter_plot_data(self):
-        values_by_trial = [[1, 2, 8], [1, 3, 8]]
+        values_by_trial = numpy.array([[1, 2, 8], [1, 3, 8]])
         scatter_data, size, sizes_by_value = sts.create_scatter_plot_data(
             values_by_trial)
         print(sts.create_scatter_plot_data(values_by_trial))
@@ -50,7 +50,7 @@ class TestDamage(unittest.TestCase):
                          {8: 100.0}], sizes_by_value)
 
     def test_histogram_values(self):
-        values_by_trial = [[1, 2, 8], [1, 3, 8]]
+        values_by_trial = numpy.array([[1, 2, 8], [1, 3, 8]])
         # hist, bin_edges
         expected = (([2], [1, 2]),
                     ([1, 1], [2, 3, 4]),
@@ -65,7 +65,7 @@ class TestDamage(unittest.TestCase):
             self.assertCountEqual(expected[i][1], results[i][1])
 
     def test_histogram_values_ragged(self):
-        values_by_trial = [[1, 8], [1, -1], [1, 8]]
+        values_by_trial = numpy.array([[1, 8], [1, -1], [1, 8]])
         # hist, bin_edges
         expected = (([3], [1, 2]),
                     ([2], [8, 9]))
@@ -92,6 +92,10 @@ class TestDamage(unittest.TestCase):
         numpy.testing.assert_equal(numpy.array(
             [2, 1, 2]), ts.average_monster_damage)
 
+    def test_trial_stats_empty(self):
+        ts = sts.TrialStats()
+        ts.finish()
+        numpy.testing.assert_equal(numpy.array([]), ts.average_monster_damage)
 
 if __name__ == '__main__':
     unittest.main()

@@ -139,7 +139,7 @@ def pad_to_dense(M):
      array in the jagged array `M`, such that `M` loses its jagedness."""
 
     if len(M) == 0:
-        return []
+        return numpy.array([])
 
     maxlen = max(len(r) for r in M)
 
@@ -172,17 +172,22 @@ class TrialStats:
         self.player_final_hp += [hp]
 
     def finish(self):
-        self.monster_damage = pad_to_dense(self.monster_damage)
-        self.player_block = pad_to_dense(self.player_block)
+        self.monster_damage_dense = pad_to_dense(self.monster_damage)
+        self.player_block_dense = pad_to_dense(self.player_block)
 
         self.average_monster_damage = []
-        damage_by_turn = numpy.swapaxes(self.monster_damage, 0, 1)
+        if self.monster_damage:
+            damage_by_turn = numpy.swapaxes(self.monster_damage_dense, 0, 1)
         for trial in damage_by_turn:
             self.average_monster_damage += [numpy.average(trial[trial != -1])]
 
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
 
-        self.average_player_block = numpy.average(self.player_block, axis=0)
+        self.average_player_block = []
+        if self.player_block:
+            player_block_by_turn = numpy.swapaxes(self.player_block_dense, 0, 1)
+            for trial in player_block_by_turn:
+                self.average_player_block += [numpy.average(trial[trial != -1])]
 
         logger.debug(f"trial_stats damage: {self.monster_damage}")
         logger.debug(f"trial_stats block: {self.player_block}")
@@ -259,7 +264,7 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
     scaling_damage, fit_x, fit_y = get_damage_stats(card_size, trial_stats)
 
     damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
-        trial_stats.monster_damage)
+        trial_stats.monster_damage_dense)
 
     logger.debug(
         f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
@@ -286,7 +291,7 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
 
 def plot_player_block(trial_stats: TrialStats):
     block_scatter_data, size, _ = create_scatter_plot_data(
-        trial_stats.player_block)
+        trial_stats.player_block_dense)
     traces = [
         go.Scatter(opacity=.5, x=block_scatter_data['turns'], y=block_scatter_data['value'], mode='markers',
                    marker=dict(
