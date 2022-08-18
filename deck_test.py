@@ -15,7 +15,7 @@ class TestDeck(unittest.TestCase):
     def test_discard(self):
         deck = Deck([Card.STRIKE]*4 + [Card.DEFEND])
         cards = deck.deal(5)
-        deck.discard(deck.hand)
+        deck.discard_from_hand(deck.hand)
         self.assertEqual(0, len(deck.hand))
         self.assertEqual(5, len(deck.discards))
 
@@ -33,7 +33,7 @@ class TestDeck(unittest.TestCase):
         self.assertEqual(6, card.attack)
         self.assertEqual([], deck.deal())
 
-        deck.discard([card])
+        deck.discard_from_hand([card])
         self.assertEqual(6, deck.deal()[0].attack)
 
     def test_card_movement(self):
@@ -47,7 +47,7 @@ class TestDeck(unittest.TestCase):
         self.assertEqual(1, len(deck.hand))
         self.assertEqual(0, len(deck.discards))
 
-        deck.discard(cards)
+        deck.discard_from_hand(cards)
         self.assertEqual(0, len(deck.deck))
         self.assertEqual(0, len(deck.hand))
         self.assertEqual(1, len(deck.discards))
@@ -61,7 +61,7 @@ class TestDeck(unittest.TestCase):
         self.assertEqual(0, card0.attack)
         self.assertEqual(6, card1.attack)
 
-        deck.discard([card0, card1])
+        deck.discard_from_hand([card0, card1])
 
         self.assertEqual(0, deck.deal()[0].attack)
 

@@ -54,17 +54,16 @@ class Deck:
         self._deals += 1
         return cards
 
-    def discard(self, cards):
+    def add_to_discards(self, cards):
+        logger.debug(f"add_to_discard {cards} for {self}")
+        self._discards.extend(cards)
+
+    def discard_from_hand(self, cards):
         logger.debug(f"discarding {cards} from {self}")
         self.add_to_discards(cards)
 
         for card in cards:
             self._hand.remove(card)
-
-    def add_to_discards(self, cards):
-        logger.debug(f"add_to_discard {cards} for {self}")
-        self._discards.extend(cards)
-
     def exhaust(self, cards):
         for card in cards:
             self._hand.remove(card)

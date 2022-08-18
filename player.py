@@ -70,7 +70,7 @@ class Player(Character):
                 return played_cards
             if self.block >= monster.attack() and card_to_play.block > 0:
                 logger.info(f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
-                self.deck.discard([card_to_play])
+                self.deck.discard_from_hand([card_to_play])
 
                 card_to_play = self.select_card_to_play(energy)
                 continue
@@ -80,7 +80,7 @@ class Player(Character):
             if card_to_play.exhausts:
                 self.deck.exhaust([card_to_play])
             else:
-                self.deck.discard([card_to_play])
+                self.deck.discard_from_hand([card_to_play])
 
             if card_to_play.attack:
                 strike_bonus = card_to_play.calculate_strike_bonus(self.deck)
@@ -107,7 +107,7 @@ class Player(Character):
 
         self.blocks.append(self.block)
 
-        self.deck.discard(self.deck.hand)
+        self.deck.discard_from_hand(self.deck.hand)
 
         return played_cards
 
