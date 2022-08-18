@@ -171,7 +171,7 @@ class TrialStats:
     def add_player_hp(self, hp):
         self.player_final_hp += [hp]
 
-    def _average(self, padded: ArrayLike):
+    def _average(self, padded: numpy.typing.NDArray):
         average = []
         if padded.size:
             value_by_turn = numpy.swapaxes(padded, 0, 1)
