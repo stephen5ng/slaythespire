@@ -9,6 +9,17 @@ from monster import JawWorm, JawWormMode, Monster
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 
 
+class TestMonster(unittest.TestCase):
+    def test_defend(self):
+        m = Monster()
+        m.defend(8)
+        m.defend(9)
+        m.end_turn()
+        m.defend(10)
+
+        self.assertEqual([17, 10], m.get_damage())
+
+
 class JawWormForTesting(JawWorm):
     def __init__(self) -> None:
         super().__init__()

@@ -113,7 +113,6 @@ class Player(Character):
 
     def play_turn(self, monster: Monster):
         logger.debug("play_turn...")
-        monster.begin_turn()
         self.strength += self.strength_buff
         self.block = 0
 

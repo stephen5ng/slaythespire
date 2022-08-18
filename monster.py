@@ -16,9 +16,6 @@ class Monster(Character):
         self._damage = []
         self.planned_damage = 0
 
-    def begin_turn(self):
-        pass
-
     def attack(self) -> int:
         return self.planned_damage
 
