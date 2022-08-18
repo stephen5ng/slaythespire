@@ -4,6 +4,7 @@ import logging.config
 import math
 import sys
 from collections import namedtuple
+from telnetlib import SE
 from typing import Sequence
 
 import numpy
@@ -13,7 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from card import Card, IRONCLAD_STARTER
+from card import IRONCLAD_STARTER, Card
 from deck import Deck
 from monster import JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
@@ -36,7 +37,7 @@ def get_frontloaded_damage(damage: list, scale=True):
     return fld
 
 
-def histogram(values_by_trial: numpy.typing.ArrayLike):
+def histogram(values_by_trial: numpy.typing.NDArray):
     logger.debug(f"values_by_trial: {values_by_trial}")
 
     trials = values_by_trial.size
@@ -74,7 +75,6 @@ def create_scatter_plot_data(values_by_trial):
     histograms = histogram(values_by_trial)
     for turn in range(len(values_by_turn)):
         sizes_by_value = {}
-        turn_attrib = values_by_turn[turn]
         hist = histograms[turn]
         for bin_count, bin in zip(*hist):
             if bin_count:
@@ -171,23 +171,22 @@ class TrialStats:
     def add_player_hp(self, hp):
         self.player_final_hp += [hp]
 
+    def _average(self, padded: ArrayLike):
+        average = []
+        if padded.size:
+            value_by_turn = numpy.swapaxes(padded, 0, 1)
+            for trial in value_by_turn:
+                average += [numpy.average(trial[trial != -1])]
+        return average
+
     def finish(self):
         self.monster_damage_dense = pad_to_dense(self.monster_damage)
         self.player_block_dense = pad_to_dense(self.player_block)
 
-        self.average_monster_damage = []
-        if self.monster_damage:
-            damage_by_turn = numpy.swapaxes(self.monster_damage_dense, 0, 1)
-            for trial in damage_by_turn:
-                self.average_monster_damage += [numpy.average(trial[trial != -1])]
-
+        self.average_monster_damage = self._average(self.monster_damage_dense)
         self.cum_monster_damage = numpy.sum(self.average_monster_damage)
 
-        self.average_player_block = []
-        if self.player_block:
-            player_block_by_turn = numpy.swapaxes(self.player_block_dense, 0, 1)
-            for trial in player_block_by_turn:
-                self.average_player_block += [numpy.average(trial[trial != -1])]
+        self.average_player_block = self._average(self.player_block_dense)
 
         logger.debug(f"trial_stats damage: {self.monster_damage}")
         logger.debug(f"trial_stats block: {self.player_block}")
