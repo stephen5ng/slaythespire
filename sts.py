@@ -38,11 +38,8 @@ def get_frontloaded_damage(damage: list, scale=True):
 
 
 def histogram(values_by_trial: numpy.typing.NDArray):
-    logger.debug(f"values_by_trial: {values_by_trial}")
-
-    trials = values_by_trial.size
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
-    logger.debug(f"values_by_turn {values_by_turn}")
+    logger.debug(f"histogram values_by_turn {values_by_turn}")
     hists = []
     for turn in range(len(values_by_turn)):
         values = values_by_turn[turn]
@@ -50,6 +47,8 @@ def histogram(values_by_trial: numpy.typing.NDArray):
         r = range(int(min(values)), 2+int(max(values)))
         hist = numpy.histogram(values, bins=r)
         hists.append(hist)
+
+    logger.debug(f"histogram --> {hists}")
     return hists
 
 
@@ -62,7 +61,8 @@ def create_scatter_plot_data(values_by_trial):
     #     - value: array of values (one per histogram bin)
     # - size: array of sizes (one per data point); sizes are proportional to histogram bucket counts
     # - sizes_by_value_by_turn: array (one per turn) of dictionary of sizes with the value as the key
-    logger.debug(f"values_by_trial: {values_by_trial}")
+    logger.debug(
+        f"create_scatter_plot_data values_by_trial: {values_by_trial}")
 
     trials = len(values_by_trial)
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
@@ -70,7 +70,6 @@ def create_scatter_plot_data(values_by_trial):
     scatter_data['turns'] = []
     scatter_data['value'] = []
     size = []
-    hists = []
     sizes_by_value_by_turn = []
     histograms = histogram(values_by_trial)
     for turn in range(len(values_by_turn)):
@@ -82,9 +81,12 @@ def create_scatter_plot_data(values_by_trial):
                 scatter_data['value'].append(bin)
                 s = bin_count/(trials/100.0)
                 sizes_by_value[bin] = s
-                hists.append(hist)
                 size.append(s)
         sizes_by_value_by_turn.append(sizes_by_value)
+        logger.debug(f"TURN {turn} scatter_data {scatter_data}")
+        logger.debug(f"TURN {turn} size: {size}")
+        logger.debug(f"TURN {turn} sizes_by_value_by_turn {sizes_by_value_by_turn}")
+
         if logger.isEnabledFor(logging.DEBUG):
             logger.debug(f"TURN hist: {hist}")
             logger.debug(f"TURN size: {size}")
@@ -262,16 +264,16 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
 def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size):
     scaling_damage, fit_x, fit_y = get_damage_stats(card_size, trial_stats)
 
-    damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
+    damage_scatter_data, size, sizes_by_damage_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage_dense)
 
     logger.debug(
-        f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+        f"best damage {combat_log.best_attack.Damages}, {size}, {sizes_by_damage_by_turn}")
 
     best = plot_one_attribute(combat_log.best_attack.Damages,
-                              damage_by_size_by_turn, 'lime', 'best')
+                              sizes_by_damage_by_turn, 'lime', 'best')
     worst = plot_one_attribute(combat_log.worst_attack.Damages,
-                               damage_by_size_by_turn, 'lightcoral', 'worst')
+                               sizes_by_damage_by_turn, 'lightcoral', 'worst')
 
     traces = [go.Scatter(opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='markers',
                          #  marker_line_color="midnightblue",
