@@ -13,7 +13,7 @@ import numpy.typing
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
+import pandas as pd
 from card import IRONCLAD_STARTER, Card
 from deck import Deck
 from monster import JawWorm, Monster
@@ -38,11 +38,9 @@ def get_frontloaded_damage(damage: list, scale=True):
 
 
 def histogram(values_by_trial: numpy.typing.NDArray):
-    logger.debug(f"values_by_trial: {values_by_trial}")
-
     trials = values_by_trial.size
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
-    logger.debug(f"values_by_turn {values_by_turn}")
+    logger.debug(f"histogram values_by_turn {values_by_turn}")
     hists = []
     for turn in range(len(values_by_turn)):
         values = values_by_turn[turn]
@@ -50,6 +48,8 @@ def histogram(values_by_trial: numpy.typing.NDArray):
         r = range(int(min(values)), 2+int(max(values)))
         hist = numpy.histogram(values, bins=r)
         hists.append(hist)
+
+    logger.debug(f"histogram --> {hists}")
     return hists
 
 
@@ -62,7 +62,8 @@ def create_scatter_plot_data(values_by_trial):
     #     - value: array of values (one per histogram bin)
     # - size: array of sizes (one per data point); sizes are proportional to histogram bucket counts
     # - sizes_by_value_by_turn: array (one per turn) of dictionary of sizes with the value as the key
-    logger.debug(f"values_by_trial: {values_by_trial}")
+    logger.debug(
+        f"create_scatter_plot_data values_by_trial: {values_by_trial}")
 
     trials = len(values_by_trial)
     values_by_turn = numpy.swapaxes(values_by_trial, 0, 1)
@@ -70,7 +71,7 @@ def create_scatter_plot_data(values_by_trial):
     scatter_data['turns'] = []
     scatter_data['value'] = []
     size = []
-    hists = []
+    # hists = []
     sizes_by_value_by_turn = []
     histograms = histogram(values_by_trial)
     for turn in range(len(values_by_turn)):
@@ -82,13 +83,15 @@ def create_scatter_plot_data(values_by_trial):
                 scatter_data['value'].append(bin)
                 s = bin_count/(trials/100.0)
                 sizes_by_value[bin] = s
-                hists.append(hist)
+                # hists.append(hist)
                 size.append(s)
         sizes_by_value_by_turn.append(sizes_by_value)
         if logger.isEnabledFor(logging.DEBUG):
-            logger.debug(f"TURN hist: {hist}")
-            logger.debug(f"TURN size: {size}")
-            logger.debug(f"TURN scatter_data {scatter_data}")
+            # logger.debug(f"TURN {turn} hist: {hist}")
+            logger.debug(f"TURN {turn} scatter_data {scatter_data}")
+            logger.debug(f"TURN {turn} size: {size}")
+            logger.debug(
+                f"TURN {turn} sizes_by_value_by_turn {sizes_by_value_by_turn}")
 
     logger.debug(
         f"scatter_data: {scatter_data}, {size}, {sizes_by_value_by_turn}")
@@ -119,19 +122,18 @@ def curve_fit(x, y):
     return coefs, residuals, fit
 
 
-def plot_one_attribute(data, size_by_turn, color, name):
+def plot_one_attribute(data, sizes_by_value_turn, color, name, marker):
+    marker = marker.copy()  # To avoid mutating sizes
     sizes = []
+    print(f"plot_one_attribute {sizes_by_value_turn}")
     for i in range(len(data)):
-        sizes.append(size_by_turn[i][data[i]])
+        print(
+            f"plot_one_attribute {i}: {data[i]} -> {sizes_by_value_turn[i][data[i]]}")
+        sizes.append(sizes_by_value_turn[i][data[i]])
+    marker['size'] = sizes
 
-    return go.Scatter(x=list(range(len(data))), y=data, mode='markers', marker=dict(
-        opacity=0.8,
-        size=sizes,
-        sizemode='area',
-        sizeref=2.*max(sizes)/(MAX_BUBBLE_SIZE**2),
-        sizemin=MIN_BUBBLE_SIZE,
-        color=color),
-        name=name)
+    # , mode='markers', marker=marker, marker_color=color)
+    return go.Scatter(x=list(range(len(data))), y=data, name=name, line={'color': color, 'dash': 'dot', 'width': 0.5})
 
 
 def pad_to_dense(M):
@@ -149,6 +151,8 @@ def pad_to_dense(M):
         Z[enu, :len(row)] += 1
         Z[enu, :len(row)] += row
     return Z
+
+# 🗡️ 🛡️
 
 
 class TrialStats:
@@ -262,29 +266,84 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
 def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size):
     scaling_damage, fit_x, fit_y = get_damage_stats(card_size, trial_stats)
 
-    damage_scatter_data, size, damage_by_size_by_turn = create_scatter_plot_data(
+    damage_scatter_data, size, sizes_by_damage_by_turn = create_scatter_plot_data(
         trial_stats.monster_damage_dense)
 
     logger.debug(
-        f"best damage {combat_log.best_attack.Damages}, {size}, {damage_by_size_by_turn}")
+        f"best damage {combat_log.best_attack.Damages}, {size}, {sizes_by_damage_by_turn}")
 
-    best = plot_one_attribute(combat_log.best_attack.Damages,
-                              damage_by_size_by_turn, 'lime', 'best')
-    worst = plot_one_attribute(combat_log.worst_attack.Damages,
-                               damage_by_size_by_turn, 'lightcoral', 'worst')
-
-    traces = [go.Scatter(opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='markers',
-                         #  marker_line_color="midnightblue",
-                         #  marker_symbol='cross',
-                         marker=dict(
+    damage_marker = dict(
         size=size,
         sizemode='area',
         sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
-        sizemin=MIN_BUBBLE_SIZE), name="damage by turns"),
-        go.Scatter(y=trial_stats.average_monster_damage, line=dict(color='grey', width=1,
-                                                                   dash='dot'), name='average'),
-        go.Scatter(x=fit_x, y=fit_y, line_color='grey', name='curve fit'), best, worst]
+        sizemin=MIN_BUBBLE_SIZE)
+    logger.debug(f"damage_marker: {damage_marker}")
+    best = plot_one_attribute(combat_log.best_attack.Damages,
+                              sizes_by_damage_by_turn, 'red', 'best by frontload damage', damage_marker)
+    # worst = plot_one_attribute(combat_log.worst_attack.Damages,
+    #                            sizes_by_damage_by_turn, 'red', 'worst', damage_marker)
+    print(f"BEST {best}")
+    best['marker']['symbol'] = 'triangle-nw'
+    best['marker']['line'] = {'color': 'white'}
+    print(f"BEST modified {best}")
+    logger.debug(f"damage_marker: {damage_marker}")
 
+    # worst['marker']['symbol'] = 'triangle-nw'
+    # worst['marker']['line'] = {'color': 'red'}
+    traces = []
+
+    traces.append(go.Scatter(  # opacity=1,
+        x=damage_scatter_data['turns'],
+        y=damage_scatter_data['value'],
+        mode='markers',
+        marker_line_color="pink",
+        marker_color="pink",
+        marker_symbol='triangle-nw',
+        marker=damage_marker,
+        # marker=dict(
+        #     size=size,
+        #     # size=[100.0, 100.0, 50.0, 5000.0],
+        #     sizemode='area',
+        #     sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
+        #     sizemin=MIN_BUBBLE_SIZE),
+        name="damage"))
+    # print(f"damage: {traces[0]}")
+    # df = px.data.gapminder().query("year==2007 and continent=='Americas'")
+    # f = px.scatter(df, x="gdpPercap", y="lifeExp",
+    #                text="country", log_x=True, size_max=60)
+    # print(f)
+
+    traces.append(go.Scatter(opacity=0.3, y=trial_stats.average_monster_damage, line=dict(color='pink', width=10,
+                                                                             dash='solid'), name='average attack'))
+    traces.append(go.Scatter(x=fit_x, y=fit_y,
+                  line_color='purple', name='curve fit'))
+    traces.append(best)
+    # traces.append(worst)
+    print(f"TRACES {traces}")
+    # traces.append(go.Scatter(
+    #     opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='text', text='🗡️ xxO🔪XXX 🛡️ ',
+    #     textfont=dict(
+    #         family="sans serif",
+    #         size=[10,18,30],
+    #         color=["white", "crimson", "black", "red"]
+    #     )))
+
+    block_scatter_data, size, _ = create_scatter_plot_data(
+        trial_stats.player_block_dense)
+    block_traces = [
+        go.Scatter(opacity=.5, x=block_scatter_data['turns'], y=block_scatter_data['value'], mode='markers',
+                   marker=dict(
+            size=size,
+            symbol='star-square',
+            color='aquamarine',
+            line_color='lightskyblue',
+            sizemode='area',
+            sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
+            sizemin=MIN_BUBBLE_SIZE), name="block by turns"),
+        go.Scatter(opacity=.3, marker={'symbol': 'star-square'}, y=trial_stats.average_player_block, line=dict(color='aquamarine', width=10,
+                                                                                       dash='solid'), name='average block')]
+
+    traces.extend(block_traces)
     title = (f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage})' +
              f' frontload: {get_frontloaded_damage(trial_stats.average_monster_damage):.2f} hp scaling: {scaling_damage}')
     return traces, title
@@ -297,11 +356,14 @@ def plot_player_block(trial_stats: TrialStats):
         go.Scatter(opacity=.5, x=block_scatter_data['turns'], y=block_scatter_data['value'], mode='markers',
                    marker=dict(
             size=size,
+            symbol='star-square',
+            color='aquamarine',
+            line_color='lightskyblue',
             sizemode='area',
             sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
             sizemin=MIN_BUBBLE_SIZE), name="block by turns"),
-        go.Scatter(y=trial_stats.average_player_block, line=dict(color='grey', width=1,
-                                                                 dash='dot'), name='average')]
+        go.Scatter(y=trial_stats.average_player_block, line=dict(color='grey', width=5,
+                                                                 dash='dash'), name='average')]
 
     title = f'avg block: {numpy.average(trial_stats.average_player_block):.2f}'
     return traces, title
@@ -314,7 +376,11 @@ def plot_player_hp(trial_stats: TrialStats):
 def main():
     logger.debug(f"starting...")
     logger.info(f"info starting...")
+    d = {"1": ["😀", "🥰", "😗"],
+         "2": [1, 2, 3]
+         }
 
+    # px.scatter(pd.DataFrame(d), x="1", y="2").show()
     argparser = argparse.ArgumentParser()
     argparser.add_argument(
         'cards', nargs='?', help='list of cards (defaults to Ironclad base set)')
@@ -364,10 +430,10 @@ def main():
     traces_and_titles.append(plot_attack_damage(
         trial_stats, combat_log, len(cards)))
 
-    if min(trial_stats.player_final_hp) != max(trial_stats.player_final_hp):
-        traces_and_titles.append(plot_player_hp(trial_stats))
+    # if min(trial_stats.player_final_hp) != max(trial_stats.player_final_hp):
+    #     traces_and_titles.append(plot_player_hp(trial_stats))
 
-    traces_and_titles.append(plot_player_block(trial_stats))
+    # traces_and_titles.append(plot_player_block(trial_stats))
 
     title = "IRONCLAD BASE" if len(
         sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
@@ -375,6 +441,8 @@ def main():
 
     fig = make_subplots(rows=1, cols=len(
         traces_and_titles), subplot_titles=titles)
+    fig.update_layout(  # paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='ghostwhite')
     for i, trace_and_title in enumerate(traces_and_titles, 1):
         traces = trace_and_title[0]
         fig.add_traces(traces, cols=[i]*len(traces), rows=[1]*len(traces))
