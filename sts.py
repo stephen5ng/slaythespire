@@ -271,16 +271,25 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
         sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
         sizemin=MIN_BUBBLE_SIZE)
     best = plot_one_attribute(combat_log.best_attack.Damages,
-                              sizes_by_damage_by_turn, 'lime', 'best', damage_marker)
+                              sizes_by_damage_by_turn, 'red', 'best frontload', damage_marker)
     worst = plot_one_attribute(combat_log.worst_attack.Damages,
                                sizes_by_damage_by_turn, 'lightcoral', 'worst', damage_marker)
-
-    traces = [go.Scatter(opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='markers',
-                         marker=damage_marker,
-                         name="damage"),
-              go.Scatter(y=trial_stats.average_monster_damage, line=dict(color='grey', width=1,
-                                                                         dash='dot'), name='average'),
-              go.Scatter(x=fit_x, y=fit_y, line_color='grey', name='curve fit'), best, worst]
+    traces = []
+    traces.append(go.Scatter(opacity=1,
+                             x=damage_scatter_data['turns'], y=damage_scatter_data['value'],
+                             mode='markers',
+                             marker=damage_marker,
+                             marker_line_color="pink",
+                             marker_color="pink",
+                             marker_symbol='triangle-nw',
+                             name="damage"))
+    traces.append(
+        go.Scatter(opacity=0.3, y=trial_stats.average_monster_damage, line=dict(
+            color='pink', width=16, dash='solid'), name='average'))
+    traces.append(
+        go.Scatter(x=fit_x, y=fit_y, line_color='darkviolet', mode='lines', line_width=0.2, name='curve fit'))
+    # traces.append(best)
+    # traces.append(worst)
 
     block = plot_player_block(trial_stats)
     traces.extend(block[0])
