@@ -277,13 +277,15 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
 
     traces = [go.Scatter(opacity=.5, x=damage_scatter_data['turns'], y=damage_scatter_data['value'], mode='markers',
                          marker=damage_marker,
-                         name="damage by turns"),
+                         name="damage"),
               go.Scatter(y=trial_stats.average_monster_damage, line=dict(color='grey', width=1,
                                                                          dash='dot'), name='average'),
               go.Scatter(x=fit_x, y=fit_y, line_color='grey', name='curve fit'), best, worst]
 
-    title = (f'total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage})' +
-             f' frontload: {get_frontloaded_damage(trial_stats.average_monster_damage):.2f} hp scaling: {scaling_damage}')
+    block = plot_player_block(trial_stats)
+    traces.extend(block[0])
+    title = (f'ATTACK total: {trial_stats.cum_monster_damage:.2f} ({combat_log.worst_attack.TotalDamage} to {combat_log.best_attack.TotalDamage})' +
+             f' frontload: {get_frontloaded_damage(trial_stats.average_monster_damage):.2f} hp scaling: {scaling_damage} | BLOCK {block[1]}')
     return traces, title
 
 
@@ -293,14 +295,17 @@ def plot_player_block(trial_stats: TrialStats):
     traces = [
         go.Scatter(opacity=.5, x=block_scatter_data['turns'], y=block_scatter_data['value'], mode='markers',
                    marker=dict(
+            symbol='star-square',
+            color='turquoise',
+            line_color='lightskyblue',
             size=size,
             sizemode='area',
             sizeref=2.*max(size)/(MAX_BUBBLE_SIZE**2),
-            sizemin=MIN_BUBBLE_SIZE), name="block by turns"),
-        go.Scatter(y=trial_stats.average_player_block, line=dict(color='grey', width=1,
-                                                                 dash='dot'), name='average')]
+            sizemin=MIN_BUBBLE_SIZE), name="block"),
+        go.Scatter(opacity=.3, mode='lines', y=trial_stats.average_player_block, line=dict(color='turquoise', width=16,
+                                                                                           dash='solid'), name='average')]
 
-    title = f'avg block: {numpy.average(trial_stats.average_player_block):.2f}'
+    title = f'avg: {numpy.average(trial_stats.average_player_block):.2f}'
     return traces, title
 
 
@@ -364,14 +369,14 @@ def main():
     if min(trial_stats.player_final_hp) != max(trial_stats.player_final_hp):
         traces_and_titles.append(plot_player_hp(trial_stats))
 
-    traces_and_titles.append(plot_player_block(trial_stats))
-
     title = "IRONCLAD BASE" if len(
         sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
     titles = [t[1] for t in traces_and_titles]
 
     fig = make_subplots(rows=1, cols=len(
         traces_and_titles), subplot_titles=titles)
+    fig.update_layout(paper_bgcolor='ghostwhite', plot_bgcolor='ghostwhite')
+
     for i, trace_and_title in enumerate(traces_and_titles, 1):
         traces = trace_and_title[0]
         fig.add_traces(traces, cols=[i]*len(traces), rows=[1]*len(traces))
