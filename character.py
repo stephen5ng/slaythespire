@@ -42,3 +42,8 @@ class Character:
         if self._vulnerable > 0:
             self._vulnerable -= 1
         self._turn += 1
+
+    def get_turn(self):
+        return self._turn
+
+    turn = property(get_turn)

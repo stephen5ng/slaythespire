@@ -25,6 +25,9 @@ logger = logging.getLogger("sts")
 
 MAX_BUBBLE_SIZE = 20
 MIN_BUBBLE_SIZE = 1
+COLOR_HEART = "#ff7f00"
+COLOR_DAMAGE = "#e41a1c"
+COLOR_BLOCK = "#377eb8"
 
 
 def get_frontloaded_damage(damage: list, scale=True):
@@ -157,7 +160,7 @@ class TrialStats:
         self.cum_monster_damage = []
         self.player_block = []
         self.turns = []
-        self.player_final_hp = []
+        self.player_turn_and_final_hp = []
 
     def add_player_block(self, block):
         self.player_block.append(block)
@@ -166,8 +169,8 @@ class TrialStats:
     def add_monster_damage(self, damage: Sequence):
         self.monster_damage.append(damage)
 
-    def add_player_hp(self, hp):
-        self.player_final_hp += [hp]
+    def add_player_hp(self, turn, hp):
+        self.player_turn_and_final_hp += [(turn, hp)]
 
     def _average(self, padded: numpy.typing.NDArray):
         average = []
@@ -189,7 +192,8 @@ class TrialStats:
         logger.debug(f"trial_stats damage: {self.monster_damage}")
         logger.debug(f"trial_stats block: {self.player_block}")
         logger.debug(f"trial_stats turns: {self.turns}")
-        logger.debug(f"trial_stats player_final_hp: {self.player_final_hp}")
+        logger.debug(
+            f"trial_stats player_turn_and_final_hp: {self.player_turn_and_final_hp}")
         print(f"average_damage: {self.average_monster_damage}")
         print(f"cum_damage: {self.cum_monster_damage}")
         print(f"average_block: {self.average_player_block}")
@@ -279,15 +283,15 @@ def plot_attack_damage(trial_stats: TrialStats, combat_log: CombatLog, card_size
                              x=damage_scatter_data['turns'], y=damage_scatter_data['value'],
                              mode='markers',
                              marker=damage_marker,
-                             marker_line_color="pink",
-                             marker_color="pink",
+                             marker_line_color=COLOR_DAMAGE,
+                             marker_color=COLOR_DAMAGE,
                              marker_symbol='triangle-nw',
                              name="damage"))
     traces.append(
         go.Scatter(opacity=0.3, y=trial_stats.average_monster_damage, line=dict(
-            color='pink', width=16, dash='solid'), name='average'))
+            color=COLOR_DAMAGE, width=16, dash='solid'), name='average'))
     traces.append(
-        go.Scatter(x=fit_x, y=fit_y, line_color='darkviolet', mode='lines', line_width=0.2, name='curve fit'))
+        go.Scatter(x=fit_x, y=fit_y, line_color=COLOR_DAMAGE, mode='lines', line_width=0.2, name='curve fit'))
     # traces.append(best)
     # traces.append(worst)
 
@@ -305,7 +309,7 @@ def plot_player_block(trial_stats: TrialStats):
         go.Scatter(opacity=.5, x=block_scatter_data['turns'], y=block_scatter_data['value'], mode='markers',
                    marker=dict(
             symbol='star-square',
-            color='turquoise',
+            color=COLOR_BLOCK,
             line_color='lightskyblue',
             size=size,
             sizemode='area',
@@ -319,7 +323,7 @@ def plot_player_block(trial_stats: TrialStats):
 
 
 def plot_player_hp(trial_stats: TrialStats):
-    return [go.Histogram(y=trial_stats.player_final_hp)], "player hp"
+    return [go.Histogram(y=trial_stats.player_turn_and_final_hp)], "player hp"
 
 
 def main():
@@ -359,7 +363,7 @@ def main():
         player.play_game(monster, turns)
         trial_stats.add_monster_damage(monster.get_damage())
         trial_stats.add_player_block(player.blocks)
-        trial_stats.add_player_hp(player.hp)
+        trial_stats.add_player_hp(monster.turn, player.hp)
         total_damage = numpy.sum(monster.get_damage())
         combat_log.add_combat(total_damage, TurnInfo(
             total_damage, player.played_cards, monster.get_damage()))
@@ -375,16 +379,59 @@ def main():
     traces_and_titles.append(plot_attack_damage(
         trial_stats, combat_log, len(cards)))
 
-    if min(trial_stats.player_final_hp) != max(trial_stats.player_final_hp):
-        traces_and_titles.append(plot_player_hp(trial_stats))
-
     title = "IRONCLAD BASE" if len(
         sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
     titles = [t[1] for t in traces_and_titles]
 
     fig = make_subplots(rows=1, cols=len(
-        traces_and_titles), subplot_titles=titles)
-    fig.update_layout(paper_bgcolor='ghostwhite', plot_bgcolor='ghostwhite')
+        traces_and_titles), specs=[[{"secondary_y": True}]], subplot_titles=titles)
+
+    print(f"final_hp: {trial_stats.player_turn_and_final_hp}")
+    ending_hp_by_turn = {}
+    for turn, hp in trial_stats.player_turn_and_final_hp:
+        ending_hp_by_turn.setdefault(turn, []).append(hp)
+
+    hp_scatter_x = []
+    hp_scatter_y = []
+    last_y = -1
+    sizes = []
+    for turn in ending_hp_by_turn.keys():
+        for y in sorted(ending_hp_by_turn[turn]):
+            if y == last_y:
+                sizes[-1] += 1
+            else:
+                last_y = y
+                sizes.append(1)
+                hp_scatter_x.append(turn)
+                hp_scatter_y.append(y)
+
+    print(f"scatter x and y: {hp_scatter_x}, {hp_scatter_y}, {sizes}")
+    ending_hp_avg_x = numpy.average(hp_scatter_x)
+    ending_hp_avg_y = numpy.average(hp_scatter_y)
+    print(f"average hp ending {ending_hp_avg_x}, {ending_hp_avg_y}")
+    print(f"ending_hp_by_turn: {ending_hp_by_turn}")
+    fig.add_trace(
+        go.Scatter(x=hp_scatter_x, y=hp_scatter_y, marker=dict(size=sizes,
+                                                               sizemode='area',
+                                                               sizeref=2. *
+                                                               max(sizes) /
+                                                               (MAX_BUBBLE_SIZE**2),
+                                                               sizemin=MIN_BUBBLE_SIZE),
+                   name="ending hp", mode="text", text="♥", textfont_color=COLOR_HEART, opacity=.5,
+                   textposition="top center", textfont_size=[8+s*.8 for s in sizes]),
+        secondary_y=True
+    )
+    fig.add_trace(
+        go.Scatter(x=[ending_hp_avg_x], y=[ending_hp_avg_y],
+                   name="ending hp", mode="text",
+                   text=f"♥<br>({ending_hp_avg_x:.1f}, {ending_hp_avg_y:.1f})",
+                   textfont_color=COLOR_HEART, opacity=.8,
+                   textfont_size=18),
+        secondary_y=True
+    )
+
+    fig.update_layout(paper_bgcolor='ghostwhite',
+                      plot_bgcolor='ghostwhite')
 
     for i, trace_and_title in enumerate(traces_and_titles, 1):
         traces = trace_and_title[0]
