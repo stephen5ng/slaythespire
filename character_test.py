@@ -47,3 +47,13 @@ class TestCharacter(unittest.TestCase):
 
         self.assertEqual(8, character.defend(8))
         character.end_turn()
+
+    def test_strength_buff(self):
+        character = Character()
+        character.strength_buff = 2
+
+        self.assertEqual(0, character.strength)
+
+        character.end_turn()
+
+        self.assertEqual(2, character.strength)

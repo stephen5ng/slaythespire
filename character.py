@@ -13,6 +13,8 @@ class Character:
         self._turn = 0
         self.block = 0
         self.hp = hp
+        self.strength = 0
+        self.strength_buff = 0
 
     def defend(self, attack_damage: int) -> int:
         logger.info(
@@ -41,6 +43,7 @@ class Character:
     def end_turn(self):
         if self._vulnerable > 0:
             self._vulnerable -= 1
+        self.strength += self.strength_buff
         self._turn += 1
 
     def get_turn(self):

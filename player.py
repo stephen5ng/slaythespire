@@ -17,8 +17,6 @@ class Player(Character):
         self.energy = energy
         self.blocks = []
         self.played_cards = []
-        self.strength = 0
-        self.strength_buff = 0
         self.post_strength_debuff_once = 0
 
     @staticmethod
@@ -113,7 +111,6 @@ class Player(Character):
 
     def play_turn(self, monster: Monster):
         logger.debug("play_turn...")
-        self.strength += self.strength_buff
         self.block = 0
 
         self.deck.deal(5)
@@ -128,6 +125,7 @@ class Player(Character):
             self.post_strength_debuff_once = 0
 
         monster.end_turn()
+        self.end_turn()
 
     def play_game(self, monster: Monster, turns: int):
         logger.info(f"GAME START player.hp: {self.hp}, monster.hp: {monster.hp}")
