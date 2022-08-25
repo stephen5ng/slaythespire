@@ -44,7 +44,7 @@ class JawWormMode(Enum):
 
 class JawWorm(Monster):
     def __init__(self) -> None:
-        super().__init__(hp=80)
+        super().__init__(hp=40)
         self.strength = 0
         self._mode = JawWormMode.CHOMP
         self._modes = [self._mode]
