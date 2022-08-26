@@ -53,7 +53,6 @@ class TestCharacter(unittest.TestCase):
         character.strength_buff = 2
 
         self.assertEqual(0, character.strength)
-
         character.end_turn()
 
         self.assertEqual(2, character.strength)

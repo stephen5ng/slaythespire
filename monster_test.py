@@ -19,6 +19,15 @@ class TestMonster(unittest.TestCase):
 
         self.assertEqual([17, 10], m.get_damage())
 
+    def test_attack(self):
+        m = Monster()
+        m.planned_damage = 5
+        m.strength_buff = 3
+        self.assertEqual(5, m.attack())
+
+        m.end_turn()
+        self.assertEqual(8, m.attack())
+
 
 class JawWormForTesting(JawWorm):
     def __init__(self) -> None:

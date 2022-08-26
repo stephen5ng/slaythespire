@@ -17,7 +17,7 @@ class Monster(Character):
         self.planned_damage = 0
 
     def attack(self) -> int:
-        return self.planned_damage
+        return self.planned_damage + self.strength
 
     def defend(self, attack_damage: int) -> None:
         post_hp_damage = super().defend(attack_damage)
@@ -95,3 +95,9 @@ class JawWorm(Monster):
 
     def __str__(self):
         return f"JawWorm {self._mode}, hp: {self.hp}, planned_damage: {self.planned_damage}, block: {self.block}, strength: {self.strength}, vulnerable: {self._vulnerable}"
+
+class Cultist(Monster):
+    def __init__(self) -> None:
+        super().__init__(hp=80)
+        self.strength_buff = 4
+        self.planned_damage = 6

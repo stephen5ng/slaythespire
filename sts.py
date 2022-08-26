@@ -16,8 +16,11 @@ from plotly.subplots import make_subplots
 
 from card import IRONCLAD_STARTER, Card
 from deck import Deck
-from monster import JawWorm, Monster
+from monster import Cultist, JawWorm, Monster
 from player import AttackingPlayer, DefendingPlayer
+
+DYNAMIC_IMPORTS = f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}, {Card}, {IRONCLAD_STARTER}"
+
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
 turn_logger = logging.getLogger("turns")
@@ -347,9 +350,6 @@ def main():
     strategy = eval(args.strategy)
     cards = eval(args.cards)
 
-    # Prevent pyflake from removing thise imports
-    logger.debug(
-        f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}, {Card}, {IRONCLAD_STARTER}")
     monster_factory = eval(args.monster)
 
     trial_stats = TrialStats()
@@ -424,8 +424,8 @@ def main():
     fig.add_trace(
         go.Scatter(x=[ending_hp_avg_x], y=[ending_hp_avg_y],
                    name="ending hp", mode="text",
-                   text=f"♥<br>({ending_hp_avg_x:.1f}, {ending_hp_avg_y:.1f})",
-                   textfont_color=COLOR_HEART, opacity=.8,
+                   text=f"♥<br>final turn: {ending_hp_avg_x:.1f}, hp: {ending_hp_avg_y:.1f}",
+                   textfont_color=COLOR_HEART, opacity=1,
                    textfont_size=18),
         secondary_y=True
     )

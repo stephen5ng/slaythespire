@@ -45,6 +45,7 @@ class Character:
             self._vulnerable -= 1
         self.strength += self.strength_buff
         self._turn += 1
+        logger.debug(f"{self.__class__.__name__} end_turn vulnerable({self._vulnerable}), self.strength: {self.strength}")
 
     def get_turn(self):
         return self._turn
