@@ -25,7 +25,8 @@ class Player(Character):
 
     @staticmethod
     def attack_sort_key(c: Card):
-        k = (c.is_attack(),
+        k = (c.energy == 0,
+             c.is_attack(),
              c.strength_gain,
              c.strength_multiplier,
              c.energy if c.energy else 1000,
@@ -36,7 +37,8 @@ class Player(Character):
 
     @staticmethod
     def defend_sort_key(c: Card):
-        k = (not c.is_attack(),
+        k = (c.energy == 0,
+             not c.is_attack(),
              c.energy if c.energy else 1000,
              c.block)
         logger.debug(f"defend_sort_key: {c}, {k}")
@@ -67,7 +69,8 @@ class Player(Character):
             if not monster.hp:
                 return played_cards
             if self.block >= monster.attack() and card_to_play.block > 0:
-                logger.info(f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
+                logger.info(
+                    f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
                 self.deck.discard_from_hand([card_to_play])
 
                 card_to_play = self.select_card_to_play(energy)
@@ -89,6 +92,7 @@ class Player(Character):
             if card_to_play.vulnerable:
                 monster.vulnerable(card_to_play.vulnerable)
 
+            monster.strength += card_to_play.enemy_strength_gain
             self.block += card_to_play.block
             self.strength_buff += card_to_play.strength_buff
             self.strength += card_to_play.strength_gain
@@ -128,7 +132,8 @@ class Player(Character):
         self.end_turn()
 
     def play_game(self, monster: Monster, turns: int):
-        logger.info(f"GAME START player.hp: {self.hp}, monster.hp: {monster.hp}")
+        logger.info(
+            f"GAME START player.hp: {self.hp}, monster.hp: {monster.hp}")
         for turn in range(turns):
             logger.info(f"***** TURN {turn} ******")
             self.play_turn(monster)

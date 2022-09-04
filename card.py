@@ -13,39 +13,45 @@ class CardArgs(namedtuple('CardArgs', (
     'attack_strength_multiplier '
     'block '
     'draw_card '
+    'enemy_strength_gain '
     'exhausts '
     'strength_buff '
     'strength_gain '
     'strength_loss '
     'strength_multiplier '
     'strike_bonus '
-        'vulnerable'))):
+    'vulnerable '
+        'weaken'))):
     def __new__(cls, energy,
                 attack=0,
                 attack_multiplier=1,
                 attack_strength_multiplier=1,
                 block=0,
                 draw_card=0,
+                enemy_strength_gain=0,
                 exhausts=False,
                 strength_buff=0,
                 strength_gain=0,
                 strength_loss=0,
                 strength_multiplier=1,
                 strike_bonus=0,
-                vulnerable=0):
+                vulnerable=0,
+                weaken=0):
         return super().__new__(cls, energy,
                                attack,
                                attack_multiplier,
                                attack_strength_multiplier,
                                block,
                                draw_card,
+                               enemy_strength_gain,
                                exhausts,
                                strength_buff,
                                strength_gain,
                                strength_loss,
                                strength_multiplier,
                                strike_bonus,
-                               vulnerable)
+                               vulnerable,
+                               weaken)
 
     def __getnewargs__(self):
         return (self.energy,
@@ -59,7 +65,8 @@ class CardArgs(namedtuple('CardArgs', (
                 self.strength_buff,
                 self.strength_multiplier,
                 self.strike_bonus,
-                self.vulnerable)
+                self.vulnerable,
+                self.weaken)
 
 
 class Card(CardArgs, Enum):
@@ -68,9 +75,12 @@ class Card(CardArgs, Enum):
     BASH_PLUS = CardArgs(2, attack=10, vulnerable=3)
     DEFEND = CardArgs(1, block=5)
     DEMON_FORM = CardArgs(3, exhausts=True, strength_buff=2)
+    DISARM = CardArgs(1, exhausts=True, enemy_strength_gain=-2)
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
     HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)
     INFLAME = CardArgs(1, exhausts=True, strength_gain=2)
+    INTIMIDATE = CardArgs(0, exhausts=True, weaken=1)
+    IRON_WAVE = CardArgs(1, attack=5, block=5)
     LIMIT_BREAK_PLUS = CardArgs(1, strength_multiplier=2)
     PERFECTED_STRIKE = CardArgs(2, attack=6, strike_bonus=2)
     PERFECTED_STRIKE_PLUS = CardArgs(2, attack=6, strike_bonus=3)

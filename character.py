@@ -10,6 +10,7 @@ class Character:
 
     def __init__(self, hp: int = 70) -> None:
         self._vulnerable = 0
+        self._weak = 0
         self._turn = 0
         self.block = 0
         self.hp = hp
@@ -44,6 +45,8 @@ class Character:
         if self._vulnerable > 0:
             self._vulnerable -= 1
         self.strength += self.strength_buff
+        if self._weak > 0:
+            self._weak -= 1
         self._turn += 1
         logger.debug(f"{self.__class__.__name__} end_turn vulnerable({self._vulnerable}), self.strength: {self.strength}")
 
