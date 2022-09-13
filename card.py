@@ -74,7 +74,7 @@ class Card(CardArgs, Enum):
     BASH = CardArgs(2, attack=8, vulnerable=2)
     BASH_PLUS = CardArgs(2, attack=10, vulnerable=3)
     DEFEND = CardArgs(1, block=5)
-    DEMON_FORM = CardArgs(3, exhausts=True, strength_buff=2)
+    DEMON_FORM = CardArgs(3, exhausts=True, strength_buff=2) # is a power add card type
     DISARM = CardArgs(1, exhausts=True, enemy_strength_gain=-2)
     FLEX = CardArgs(0, strength_gain=2, strength_loss=2)
     HEAVY_BLADE = CardArgs(1, attack=14, attack_strength_multiplier=3)

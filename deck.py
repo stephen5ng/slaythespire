@@ -51,7 +51,7 @@ class Deck:
         logger.debug(f"deals: {self._deals}, dealt {self}")
         logger.info(f"hand {self.hand}")
 
-        self._deals += 1
+        self._deals += 1 # 
         return cards
 
     def add_to_discards(self, cards):
@@ -60,10 +60,11 @@ class Deck:
 
     def discard_from_hand(self, cards):
         logger.debug(f"discarding {cards} from {self}")
-        self.add_to_discards(cards)
-
         for card in cards:
             self._hand.remove(card)
+
+        self.add_to_discards(cards)
+            
     def exhaust(self, cards):
         for card in cards:
             self._hand.remove(card)

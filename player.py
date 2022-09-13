@@ -11,7 +11,7 @@ logger = logging.getLogger("turns").getChild(__name__)
 
 class Player(Character):
 
-    def __init__(self, deck: Deck, energy: int = 3, hp: int = 70) -> None:
+    def __init__(self, deck: Deck, energy: int = 3, hp: int = 72) -> None:
         super().__init__(hp=hp)
         self.deck = deck
         self.energy = energy
@@ -29,7 +29,7 @@ class Player(Character):
              c.is_attack(),
              c.strength_gain,
              c.strength_multiplier,
-             c.energy if c.energy else 1000,
+             c.energy if c.energy else 1000, # remove else
              c.exhausts,
              c.attack)
         logger.debug(f"attack_sort_key: {c}, {k}")
@@ -46,15 +46,9 @@ class Player(Character):
 
     def select_card_to_play(self, energy) -> Union[Card, None]:
         for card in self.deck.hand:
-            # if len(self.played_cards) < 5 and card is Card.BASH:
-            #     continue
+            if card.energy <= energy:                
+                return card
 
-            # logger.debug(
-            #     f"energy: {energy} looking at card: {card} / {self.deck.hand}")
-
-            if card.energy and energy < card.energy:
-                continue
-            return card
         return None
 
     def _play_hand(self, monster: Monster):
@@ -71,7 +65,7 @@ class Player(Character):
             if self.block >= monster.attack() and card_to_play.block > 0:
                 logger.info(
                     f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
-                self.deck.discard_from_hand([card_to_play])
+                self.deck.discard_from_hand([card_to_play]) # ?? not actually in discard pile
 
                 card_to_play = self.select_card_to_play(energy)
                 continue
@@ -99,6 +93,7 @@ class Player(Character):
             self.post_strength_debuff_once += card_to_play.strength_loss
             self.strength *= card_to_play.strength_multiplier
             if card_to_play.draw_card:
+                # store card for logging only
                 cards = self.deck.deal(card_to_play.draw_card)
                 logger.info(f"drawing cards: {cards}")
                 self.deck.sort_hand(self._sort_key)
@@ -121,7 +116,7 @@ class Player(Character):
         self.played_cards.append(self._play_hand(monster))
         logger.info(f"Played: {self.played_cards[-1]}")
         if monster.hp:
-            attack = monster.attack()
+            attack = monster.attack() # monster.isAttacking()
             if attack:
                 self.defend(attack)
         if self.post_strength_debuff_once:
