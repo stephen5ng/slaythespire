@@ -36,7 +36,7 @@ class TestDamage(unittest.TestCase):
         self.assertAlmostEqual(2.0, coefficients[0])
         self.assertAlmostEqual(0.0, coefficients[1])
         self.assertAlmostEqual(0.0, residuals[0])
-        self.assertCountEqual([2.0]*10, fit)
+        numpy.testing.assert_allclose([2.0]*10, fit)
 
     def test_create_scatter_plot_data(self):
         values_by_trial = numpy.array([[1, 2, 8], [1, 3, 8]])
