@@ -17,7 +17,7 @@ class Monster(Character):
         self.planned_damage = 0
 
     def attack(self) -> int:
-        return int((self.planned_damage + self.strength)/0.75) # ??? .75
+        return int(self.planned_damage + self.strength)
 
     def defend(self, attack_damage: int) -> None:
         post_hp_damage = super().defend(attack_damage)
@@ -88,7 +88,6 @@ class JawWorm(Monster):
     def end_turn(self):
         super().end_turn()
         self.block = 0
-        # self.strength = max(0, self.strength-1)
 
         self._mode = self._get_next_mode()
         self._setup_mode()

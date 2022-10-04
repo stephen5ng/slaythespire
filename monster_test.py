@@ -66,22 +66,15 @@ class TestJawWorm(unittest.TestCase):
 
         jw.next_mode = JawWormMode.CHOMP
         jw.end_turn()
-        self.assertEqual(3, jw.strength)
-        jw.end_turn()
-        self.assertEqual(2, jw.strength)
-        jw.end_turn()
-        self.assertEqual(1, jw.strength)
-        jw.end_turn()
-        self.assertEqual(0, jw.strength)
-        jw.end_turn()
-        self.assertEqual(0, jw.strength)
-        jw.end_turn()
+        self.assertEqual(4, jw.strength)
 
         jw.next_mode = JawWormMode.BELLOW
         jw.end_turn()
-        self.assertEqual(4, jw.strength)
+        self.assertEqual(8, jw.strength)
+
+        jw.next_mode = JawWormMode.CHOMP
         jw.end_turn()
-        self.assertEqual(7, jw.strength)
+        self.assertEqual(8, jw.strength)
 
     def test_thrash(self):
         jw = JawWormForTesting()
