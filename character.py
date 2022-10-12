@@ -48,7 +48,7 @@ class Character:
         if self._weak > 0:
             self._weak -= 1
         self._turn += 1
-        logger.debug(f"{self.__class__.__name__} end_turn vulnerable({self._vulnerable}), self.strength: {self.strength}")
+        logger.debug(f"{self.__class__.__name__} end_turn hp: {self.hp}, vulnerable: {self._vulnerable}, self.strength: {self.strength}")
 
     def get_turn(self):
         return self._turn

@@ -68,10 +68,11 @@ class JawWorm(Monster):
                 next_mode = JawWormMode.CHOMP
             break
         self._modes.append(next_mode)
+        logger.debug(f"JawWorm next_mode: {self._mode.name}")
         return next_mode
 
     def attack(self) -> int:
-        # logger.debug(f"JawWorm attack() --> {self.planned_damage}")
+        # logger.debug(f"JawWorm attack() {self._mode.name}--> {self.planned_damage}")
         return self.planned_damage + self.strength if self.planned_damage else 0
 
     def _setup_mode(self):
