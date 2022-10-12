@@ -1,7 +1,0 @@
-name: sts
-dependencies:
-  - git
-  - python=3.10
-  - numpy
-  - pandas
-  - plotly
