@@ -5,8 +5,12 @@ from card import Card
 from character import Character
 from deck import Deck
 from monster import Monster
+from csv_logger import CsvLogger
+import fastai_sts
+import random
 
 logger = logging.getLogger("turns").getChild(__name__)
+csv_logger = CsvLogger()
 
 
 class Player(Character):
@@ -29,7 +33,7 @@ class Player(Character):
              c.is_attack(),
              c.strength_gain,
              c.strength_multiplier,
-             c.energy if c.energy else 1000, # remove else
+             c.energy if c.energy else 1000,  # remove else
              c.exhausts,
              c.attack)
         logger.debug(f"attack_sort_key: {c}, {k}")
@@ -44,32 +48,38 @@ class Player(Character):
         logger.debug(f"defend_sort_key: {c}, {k}")
         return k
 
-    def select_card_to_play(self, energy) -> Union[Card, None]:
+    def select_card_to_play(self, energy, monster: Monster) -> Union[Card, None]:
         for card in self.deck.hand:
-            if card.energy <= energy:                
-                return card
+            if card.energy > energy:
+                continue
+            if self.block >= monster.attack() and card.block > 0:
+                logger.info(
+                    f"!!skipping {card} due to sufficient block: {self.block} >= {monster.planned_damage}")
+                # continue
+
+            return card
 
         return None
 
-    def _play_hand(self, monster: Monster):
+    def _sort_hand(self):
         self.deck.sort_hand(self._sort_key)
-        logger.info(f"Sorted: {self.deck.hand}")
+        logger.debug(f"Sorted: {self.deck.hand}")
+
+    def _play_hand(self, monster: Monster):
+        self._sort_hand()
 
         energy = self.energy
         played_cards = []
         logger.info(f"incoming attack: {monster.attack()}")
-        card_to_play = self.select_card_to_play(energy)
+        card_to_play = self.select_card_to_play(energy, monster)
         while card_to_play:
             if not monster.hp:
                 return played_cards
-            if self.block >= monster.attack() and card_to_play.block > 0:
-                logger.info(
-                    f"skipping {card_to_play} due to sufficient block: {self.block} >= {monster.planned_damage}")
-                self.deck.discard_from_hand([card_to_play]) # ?? not actually in discard pile
+            logger.debug(f"playing card: {card_to_play}")
+            # csv_logger.info(f"playing card: {card_to_play}")
+            csv_logger.play_card(energy, card_to_play, self.hp,
+                                 monster.hp, monster.attack(), monster.block)
 
-                card_to_play = self.select_card_to_play(energy)
-                continue
-            logger.info(f"playing card: {card_to_play}")
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
             if card_to_play.exhausts:
@@ -99,8 +109,8 @@ class Player(Character):
                 self.deck.sort_hand(self._sort_key)
 
             card_to_play.extra_action(self.deck)
-
-            card_to_play = self.select_card_to_play(energy)
+            # QUIT IF MONSTER DEAD
+            card_to_play = self.select_card_to_play(energy, monster)
 
         self.blocks.append(self.block)
 
@@ -110,13 +120,14 @@ class Player(Character):
 
     def play_turn(self, monster: Monster):
         logger.debug("play_turn...")
+        csv_logger.next_turn()
         self.block = 0
 
         self.deck.deal(5)
         self.played_cards.append(self._play_hand(monster))
         logger.info(f"Played: {self.played_cards[-1]}")
         if monster.hp:
-            attack = monster.attack() # monster.isAttacking()
+            attack = monster.attack()  # monster.isAttacking()
             if attack:
                 self.defend(attack)
         if self.post_strength_debuff_once:
@@ -136,6 +147,7 @@ class Player(Character):
                 break
         logger.info(
             f"GAME END player.hp: {self.hp} monster.hp: {monster.hp}, damage: {monster.get_damage()}")
+        csv_logger.end_game(self.hp)
 
 
 class DefendingPlayer(Player):
@@ -148,3 +160,45 @@ class AttackingPlayer(Player):
     @staticmethod
     def _sort_key(c: Card):
         return (Player.attack_sort_key(c), Player.defend_sort_key(c))
+
+
+class AIPlayer(Player):
+    def __init__(self, *args, **kw):
+        super().__init__(*args, **kw)
+        self._m = fastai_sts.setup_model()
+
+    def _sort_hand(self):
+        self.deck.sort_hand(None)
+
+    def select_card_to_play(self, energy, monster: Monster) -> Union[Card, None]:
+        min_score = 100000
+        best_cards = []
+        for card in self.deck.hand:
+            if card.energy > energy:
+                continue
+
+            p = fastai_sts.predict({
+                "ENERGY": [energy],
+                "PLAYER_HP": [self.hp],
+                "MONSTER_HP": [monster.hp],
+                "MONSTER_ATTACK": [monster.attack()],
+                "MONSTER_BLOCK": [monster.block],
+            }, self._m)
+            print(f"checking {card.name} --> {p}")
+            if p < min_score:
+                best_cards = [card]
+                min_score = p
+            elif p == min_score:
+                best_cards.append(card)
+
+        if best_cards:
+            best_card = random.choice(best_cards)
+            print(f"best_card --> {best_cards} --> {best_card}")
+            return best_card
+        return None
+
+
+class RandomPlayer(Player):
+    def _sort_hand(self):
+        self.deck.sort_hand(None)
+        logger.info(f"Sorted: {self.deck.hand}")

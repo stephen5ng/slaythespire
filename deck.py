@@ -2,7 +2,6 @@ import logging
 import logging.config
 from logging import config
 from typing import List, Union
-
 import numpy
 
 from card import Card
@@ -75,7 +74,10 @@ class Deck:
         return self._hand + self._deck + self._discards
 
     def sort_hand(self, key):
-        self._hand.sort(reverse=True, key=key)
+        if key:
+            self._hand.sort(reverse=True, key=key)
+        else:
+            numpy.random.shuffle(self._hand)
         logger.debug(f"SORTED {self._hand}")
 
     def __str__(self):

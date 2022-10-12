@@ -28,36 +28,25 @@ def get_to():
             os.remove("m.pkl")
         df = pd.read_csv(
             '/mnt/c/Users/steph/Documents/slaythespire/sts.save.csv')
+        print(f"df: {df[:8]}")
         trn_split = df.index[df['GAME'] < df.max(0)['GAME']*.8].tolist()
         val_split = df.index[df['GAME'] >= df.max(0)['GAME']*.8].tolist()
-        splits = trn_split, val_split
+        df['FINAL_HP_DELTA'] = (df.groupby(
+                ['PLAYER_HP', 'MONSTER_BLOCK', 'MONSTER_HP', 'MONSTER_ATTACK'])['FINAL_HP'].transform('max') - 
+                                df["FINAL_HP"])
 
-        df2 = df.drop([
-            # 'GAME',
-            # 'N_TURN',
-            #     'PLAY'
-        ], axis=1)
-        df2['BEST_FINAL_HP'] = df2.groupby(
-            ['PLAYER_HP', 'MONSTER_BLOCK', 'MONSTER_HP', 'MONSTER_ATTACK'])['FINAL_HP'].transform('max')
-
-        df_joined = df2
-        df_joined['FINAL_HP_DELTA'] = df_joined["BEST_FINAL_HP"] - \
-            df_joined["FINAL_HP"]
         cat_names = ['PLAY']
-        cont_names = [
-            #     'N_PLAY',
-            'ENERGY', 'PLAYER_HP', 'MONSTER_HP', 'MONSTER_ATTACK', 'MONSTER_BLOCK', 'ATTACK', 'VULNERABLE', 'DEFEND']
+        cont_names = [ 'ENERGY', 'PLAYER_HP', 'MONSTER_HP', 'MONSTER_ATTACK', 'MONSTER_BLOCK']
         dep_var = 'FINAL_HP_DELTA'
-        dfj = df_joined.drop(
-            ['N_PLAY', 'PLAY', 'GAME', 'N_TURN', 'BEST_FINAL_HP', 'FINAL_HP'], axis=1)
-        to = TabularPandas(dfj,
-                           #                    procs=[Categorify],
-                           #                    ,FillMissing,Normalize],
-                           #                    cat_names = cat_names,
+        to = TabularPandas(df,
+                           procs=[Categorify],
+                           cat_names=cat_names,
                            cont_names=cont_names,
                            y_names=dep_var,
-                           splits=splits)
+                           splits=(trn_split, val_split))
         save_pickle('to.pkl', to)
+        print(f"TO: {to[:10]}")
+
     return to
 
 
@@ -93,6 +82,7 @@ def get_m(xs, y):
             max_leaf_nodes=mln
         ).fit(xs, y)
         save_pickle('m.pkl', m)
+        print(f"PREDICT: {m.predict(xs[10:12]),xs[10:12]}")
     return m
 
 
@@ -109,6 +99,9 @@ def setup_model():
 
 
 def predict(data, m):
+    cats = to.procs.categorify.classes['PLAY']
+    
+    data["PLAY"] = [cats.o2i[x.name] for x in data["PLAY"]]
     test_data = pd.DataFrame(data)
     # print(f"{test_data}")
     p = m.predict(test_data)[0]
@@ -126,18 +119,17 @@ if __name__ == "__main__":
     m = get_m(xs, y)
 
     print(f"ERRORS {m_rmse(m, xs, y), m_rmse(m, valid_xs, valid_y)}")
-    print(f"to: {to[:2]}")
+    print(f"to: {to[:2]}, CCC: {to.procs.categorify.classes['PLAY']}")
+    cats = to.procs.categorify.classes['PLAY']
     test = pd.DataFrame(
         {
             #         "PLAY": [3],
-            "ENERGY": [2] * 3,
+            "PLAY": [cats.o2i[x] for x in ("DEFEND", "STRIKE", "BASH")],
+            "ENERGY": [3] * 3,
             "PLAYER_HP": [72] * 3,
-            "MONSTER_HP": [8] * 3,
+            "MONSTER_HP": [4] * 3,
             "MONSTER_ATTACK": [12] * 3,
             "MONSTER_BLOCK": [0] * 3,
-            "ATTACK": [0, 6, 8],
-            "VULNERABLE": [0, 0, 2],
-            "DEFEND": [5, 0, 0],
         }
     )
 

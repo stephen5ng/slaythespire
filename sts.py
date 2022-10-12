@@ -17,9 +17,9 @@ from plotly.subplots import make_subplots
 from card import IRONCLAD_STARTER, Card
 from deck import Deck
 from monster import Cultist, JawWorm, Monster
-from player import AttackingPlayer, DefendingPlayer
+from player import AttackingPlayer, DefendingPlayer, RandomPlayer, AIPlayer
 
-DYNAMIC_IMPORTS = f"dynamic imports: {JawWorm}, {Monster}, {AttackingPlayer}, {DefendingPlayer}, {Card}, {IRONCLAD_STARTER}"
+DYNAMIC_IMPORTS = f"dynamic imports: {JawWorm}, {Monster}, {AIPlayer}, {AttackingPlayer}, {DefendingPlayer}, {Card}, {IRONCLAD_STARTER}"
 
 
 logging.config.fileConfig(fname='logging.conf', disable_existing_loggers=False)
@@ -444,7 +444,7 @@ def main():
     if args.write:
         filename = f"charts/{' '.join(sys.argv[1:]).replace('--write', '').strip()}.html"
         fig.write_html(filename)
-    logger.debug(f"fig: {fig}")
+    # logger.debug(f"fig: {fig}")
 
     fig.show()
 
