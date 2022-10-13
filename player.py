@@ -7,10 +7,12 @@ from deck import Deck
 from monster import Monster
 from csv_logger import CsvLogger
 import fastai_sts
+import numpy
 import random
 
 logger = logging.getLogger("turns").getChild(__name__)
-csv_logger = CsvLogger()
+csv_logger = CsvLogger(
+                "FINAL_HP,GAME,N_TURN,N_PLAY,ENERGY,PLAY,PLAYER_HP,PLAYER_BLOCK,MONSTER_HP,MONSTER_ATTACK,MONSTER_BLOCK,MONSTER_VULNERABLE,HAND_STRIKES,HAND_BASHES")
 
 
 class Player(Character):
@@ -76,9 +78,11 @@ class Player(Character):
             if not monster.hp:
                 return played_cards
             logger.debug(f"playing card: {card_to_play}")
-            # csv_logger.info(f"playing card: {card_to_play}")
-            csv_logger.play_card(energy, card_to_play, self.hp,
-                                 monster.hp, monster.attack(), monster.block)
+            # print(f"{self.deck.hand}: {self.deck.hand.count(Card.STRIKE)}")
+            csv_logger.play_card(
+                (energy, card_to_play.name, self.hp, self.block,
+                 monster.hp, monster.attack(), monster.block, monster.get_vulnerable(),
+                 self.deck.hand.count(Card.STRIKE), self.deck.hand.count(Card.BASH)))
 
             played_cards.append(card_to_play)
             energy -= card_to_play.energy
@@ -163,9 +167,12 @@ class AttackingPlayer(Player):
 
 
 class AIPlayer(Player):
+    _m = None
+
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
-        self._m = fastai_sts.setup_model()
+        if not AIPlayer._m:
+            AIPlayer._m = fastai_sts.setup_model()
 
     def _sort_hand(self):
         self.deck.sort_hand(None)
@@ -173,27 +180,37 @@ class AIPlayer(Player):
     def select_card_to_play(self, energy, monster: Monster) -> Union[Card, None]:
         min_score = 100000
         best_cards = []
+        checked = set()
         for card in self.deck.hand:
+            if card in checked:
+                continue
             if card.energy > energy:
                 continue
 
             p = fastai_sts.predict({
+                "PLAY": [card],
                 "ENERGY": [energy],
                 "PLAYER_HP": [self.hp],
+                "PLAYER_BLOCK": [self.block],
                 "MONSTER_HP": [monster.hp],
                 "MONSTER_ATTACK": [monster.attack()],
                 "MONSTER_BLOCK": [monster.block],
+                "MONSTER_VULNERABLE": [monster.get_vulnerable()],
+                "HAND_STRIKES": self.deck.hand.count(Card.STRIKE),
+                "HAND_BASHES": self.deck.hand.count(Card.BASH),
             }, self._m)
-            print(f"checking {card.name} --> {p}")
+            logging.debug(f"checking {card.name} --> {p}")
             if p < min_score:
                 best_cards = [card]
                 min_score = p
             elif p == min_score:
                 best_cards.append(card)
+            checked.add(card)
 
         if best_cards:
-            best_card = random.choice(best_cards)
-            print(f"best_card --> {best_cards} --> {best_card}")
+            logging.debug(f"bestcards: {best_cards}")
+            best_card = random.choice(list(best_cards))
+            logging.debug(f"best_card --> {best_cards} --> {best_card}")
             return best_card
         return None
 
