@@ -18,9 +18,6 @@ class Character:
         self.strength_buff = 0
 
     def defend(self, attack_damage: int) -> int:
-        logger.info(
-            f"{self.__class__.__name__} defend({attack_damage}) block: {self.block}, vulnerable: {self._vulnerable}, hp: {self.hp}")
-
         post_vulnerable_damage = int(
             attack_damage * (1.5 if self._vulnerable else 1.0))
 
@@ -31,7 +28,7 @@ class Character:
         self.hp -= post_hp_damage
 
         logger.info(
-            f"{self.__class__.__name__} ...defend() block: {self.block},"
+            f"{self.__class__.__name__} defend({attack_damage}), vulnerable: {self._vulnerable}, block: {self.block}"
             f" damage: {attack_damage}->{post_vulnerable_damage}->{post_block_damage}->{post_hp_damage}, hp: {self.hp}")
         if not self.hp:
             logger.info(f"{self.__class__.__name__} DIED")
@@ -39,7 +36,8 @@ class Character:
 
     def vulnerable(self, turns: int) -> None:
         self._vulnerable += turns
-        logger.debug(f"{self.__class__.__name__} vulnerable({turns}), vulnerable: {self._vulnerable}")
+        logger.debug(
+            f"{self.__class__.__name__} vulnerable({turns}), vulnerable: {self._vulnerable}")
 
     def end_turn(self):
         if self._vulnerable > 0:
@@ -48,9 +46,12 @@ class Character:
         if self._weak > 0:
             self._weak -= 1
         self._turn += 1
-        logger.debug(f"{self.__class__.__name__} end_turn hp: {self.hp}, vulnerable: {self._vulnerable}, self.strength: {self.strength}")
+        logger.debug(
+            f"{self.__class__.__name__} end_turn hp: {self.hp}, vulnerable: {self._vulnerable}, self.strength: {self.strength}")
 
     def get_turn(self):
         return self._turn
 
+    def get_vulnerable(self):
+        return self._vulnerable
     turn = property(get_turn)
