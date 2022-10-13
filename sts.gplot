@@ -1,0 +1,5 @@
+set timefmt "%H:%M:%S"
+set xdata time
+set term png
+set output "gnuplot.png"
+plot "training.log" using 1:2
