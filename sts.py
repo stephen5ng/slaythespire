@@ -39,7 +39,7 @@ def get_frontloaded_damage(damage: list, scale=True):
     for ix in range(min(len(damage), 4)):
         fld += damage[ix] * (scaling if scale else 1.0)
         scaling /= 2.0
-    print(f"FRONTLOADED DAMAGE: {fld:.2f}")
+    logger.info(f"FRONTLOADED DAMAGE: {fld:.2f}")
     return fld
 
 
@@ -197,9 +197,9 @@ class TrialStats:
         logger.debug(f"trial_stats turns: {self.turns}")
         logger.debug(
             f"trial_stats player_turn_and_final_hp: {self.player_turn_and_final_hp}")
-        print(f"average_damage: {self.average_monster_damage}")
-        print(f"cum_damage: {self.cum_monster_damage}")
-        print(f"average_block: {self.average_player_block}")
+        logger.info(f"average_damage: {self.average_monster_damage}")
+        logger.info(f"cum_damage: {self.cum_monster_damage}")
+        logger.info(f"average_block: {self.average_player_block}")
 
 
 TurnInfo = namedtuple("TurnInfo", "TotalDamage CardsPlayed Damages")
@@ -228,10 +228,10 @@ class CombatLog:
             self.worst_block = [total_block, cards_played]
 
     def finish(self):
-        print(f"BEST ATTACK: {self.best_attack}")
-        print(f"WORST ATTACK: {self.worst_attack}")
-        print(f"BEST BLOCK: {self.best_block}")
-        print(f"WORST BLOCK: {self.worst_block}")
+        logger.info(f"BEST ATTACK: {self.best_attack}")
+        logger.info(f"WORST ATTACK: {self.worst_attack}")
+        logger.info(f"BEST BLOCK: {self.best_block}")
+        logger.info(f"WORST BLOCK: {self.worst_block}")
 
 
 def get_damage_stats(deck_size: int, trial_stats: TrialStats):
@@ -259,7 +259,7 @@ def get_damage_stats(deck_size: int, trial_stats: TrialStats):
         ffit = [math.pow(2, y) for y in log_ffit]
         scaling = f"O({coefs[1]:.2f}*2^n)"
 
-    print(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
+    logger.info(f"SCALING DAMAGE: coefs: {coefs}, {scaling}")
 
     return scaling, x_after_first_deck, ffit
 
@@ -346,6 +346,10 @@ def main():
         '--monster', help='monster to fight', default='Monster')
     argparser.add_argument(
         '--write', help='write chart to disk', action="store_true")
+    argparser.add_argument(
+        '--plot', help='plot chart', action="store_true")
+    argparser.add_argument(
+        '--seed', help='seed', type=int, default=0)
     args = argparser.parse_args()
     strategy = eval(args.strategy)
     cards = eval(args.cards)
@@ -358,7 +362,7 @@ def main():
     trials = args.trials
 
     for trial in range(trials):
-        player = strategy(Deck(cards, seed=trial))
+        player = strategy(Deck(cards, seed=trial + args.seed))
         monster = monster_factory()
         player.play_game(monster, turns)
         trial_stats.add_monster_damage(monster.get_damage())
@@ -374,19 +378,8 @@ def main():
     combat_log.finish()
     trial_stats.finish()
 
-    traces_and_titles = []
 
-    traces_and_titles.append(plot_attack_damage(
-        trial_stats, combat_log, len(cards)))
-
-    title = "IRONCLAD BASE" if len(
-        sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
-    titles = [t[1] for t in traces_and_titles]
-
-    fig = make_subplots(rows=1, cols=len(
-        traces_and_titles), specs=[[{"secondary_y": True}]], subplot_titles=titles)
-
-    print(f"final_hp: {trial_stats.player_turn_and_final_hp}")
+    logger.debug(f"final_hp: {trial_stats.player_turn_and_final_hp}")
     ending_hp_by_turn = {}
     for turn, hp in trial_stats.player_turn_and_final_hp:
         ending_hp_by_turn.setdefault(turn, []).append(hp)
@@ -405,11 +398,27 @@ def main():
                 hp_scatter_x.append(turn)
                 hp_scatter_y.append(y)
 
-    print(f"scatter x and y: {hp_scatter_x}, {hp_scatter_y}, {sizes}")
+    logger.debug(f"scatter x and y: {hp_scatter_x}, {hp_scatter_y}, {sizes}")
     ending_hp_avg_x = numpy.average(hp_scatter_x)
     ending_hp_avg_y = numpy.average(hp_scatter_y)
-    print(f"average hp ending {ending_hp_avg_x}, {ending_hp_avg_y}")
-    print(f"ending_hp_by_turn: {ending_hp_by_turn}")
+    logger.debug(f"average hp ending {ending_hp_avg_x}, {ending_hp_avg_y}")
+    print(f"{ending_hp_avg_y}")
+    
+    logger.debug(f"ending_hp_by_turn: {ending_hp_by_turn}")
+    if not args.plot:
+        return
+
+    traces_and_titles = []
+
+    traces_and_titles.append(plot_attack_damage(
+        trial_stats, combat_log, len(cards)))
+
+    title = "IRONCLAD BASE" if len(
+        sys.argv) <= 1 else f'{args.strategy} vs {args.monster}<sup><br>{args.cards}</sup>'
+    titles = [t[1] for t in traces_and_titles]
+    
+    fig = make_subplots(rows=1, cols=len(
+        traces_and_titles), specs=[[{"secondary_y": True}]], subplot_titles=titles)
     fig.add_trace(
         go.Scatter(x=hp_scatter_x, y=hp_scatter_y, marker=dict(size=sizes,
                                                                sizemode='area',
