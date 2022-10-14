@@ -178,41 +178,26 @@ class AIPlayer(Player):
         self.deck.sort_hand(None)
 
     def select_card_to_play(self, energy, monster: Monster) -> Union[Card, None]:
-        min_score = 100000
-        best_cards = []
-        checked = set()
-        for card in self.deck.hand:
-            if card in checked:
-                continue
-            if card.energy > energy:
-                continue
-
-            p = fastai_sts.predict({
-                "PLAY": [card],
-                "ENERGY": [energy],
-                "PLAYER_HP": [self.hp],
-                "PLAYER_BLOCK": [self.block],
-                "MONSTER_HP": [monster.hp],
-                "MONSTER_ATTACK": [monster.attack()],
-                "MONSTER_BLOCK": [monster.block],
-                "MONSTER_VULNERABLE": [monster.get_vulnerable()],
-                "HAND_STRIKES": self.deck.hand.count(Card.STRIKE),
-                "HAND_BASHES": self.deck.hand.count(Card.BASH),
-            }, self._m)
-            logging.debug(f"checking {card.name} --> {p}")
-            if p < min_score:
-                best_cards = [card]
-                min_score = p
-            elif p == min_score:
-                best_cards.append(card)
-            checked.add(card)
-
-        if best_cards:
-            logging.debug(f"bestcards: {best_cards}")
-            best_card = random.choice(list(best_cards))
-            logging.debug(f"best_card --> {best_cards} --> {best_card}")
-            return best_card
-        return None
+        uniq_cards = set(card for card in self.deck.hand if card.energy <= energy)
+        if not uniq_cards:
+            return None
+        
+        ps = fastai_sts.predict({
+            "PLAY": uniq_cards,
+            "ENERGY": energy,
+            "PLAYER_HP": self.hp,
+            "PLAYER_BLOCK": self.block,
+            "MONSTER_HP": monster.hp,
+            "MONSTER_ATTACK": monster.attack(),
+            "MONSTER_BLOCK": monster.block,
+            "MONSTER_VULNERABLE": monster.get_vulnerable(),
+            "HAND_STRIKES": self.deck.hand.count(Card.STRIKE),
+            "HAND_BASHES": self.deck.hand.count(Card.BASH),
+        }, self._m)
+        best_cards = [x[1] for x in zip(ps, uniq_cards) if x[0] == min(ps)]
+        best_card = random.choice(list(best_cards))
+        logger.debug(f"best_card --> {list(zip(ps, uniq_cards))} --> {list(best_cards)} --> {best_card}")
+        return best_card
 
 
 class RandomPlayer(Player):

@@ -52,17 +52,6 @@ def get_to(csv_path=None):
         trn_split = df.index[df['GAME'] < last_game*.8].tolist()
         val_split = df.index[df['GAME'] >= last_game*.8].tolist()
 
-        # print(f"trn_split {trn_split}\nval_split {val_split}")
-        # df['MONSTER_HP_LOG'] = np.around(np.log2(df["MONSTER_HP"]), decimals=1)
-        # df['PLAYER_HP_LOG'] = np.around(np.log2(df["PLAYER_HP"]), decimals=1)
-        # df['FINAL_HP_DELTA'] = np.log2(1+(df.groupby(
-        #     ['ENERGY',
-        #      'PLAYER_HP_LOG',
-        #      'PLAYER_BLOCK', 'MONSTER_BLOCK', 'MONSTER_HP_LOG', 'MONSTER_ATTACK',
-        #      'MONSTER_VULNERABLE',
-        #     #  'HAND_STRIKES'
-        #      ])['FINAL_HP'].transform('max') -
-        #     df["FINAL_HP"]))
         df['FINAL_HP_NEGATIVE'] = -df['FINAL_HP']
         logger.debug(f"df:\n {df[:100]}")
 
@@ -161,10 +150,11 @@ def setup_model():
 def predict(data, m):
     cats = to.procs.categorify.classes['PLAY']
 
+    # data["PLAY"] = [cats.o2i[x.name] for x in data["PLAY"]]
     data["PLAY"] = [cats.o2i[x.name] for x in data["PLAY"]]
     test_data = pd.DataFrame(data)
     logger.debug(f"data: \n{test_data}")
-    p = m.predict(test_data)[0]
+    p = m.predict(test_data)
     # print(f"{data} -> {p}")
     return p
 
