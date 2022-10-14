@@ -5,7 +5,7 @@ from pandas.api.types import is_string_dtype, is_numeric_dtype, is_categorical_d
 from fastbook import *
 import fastbook
 import sys
-
+import aidata
 import logging
 import logging.config
 
@@ -67,14 +67,7 @@ def get_to(csv_path=None):
         logger.debug(f"df:\n {df[:100]}")
 
         cat_names = ['PLAY']
-        cont_names = ['ENERGY',
-                      'PLAYER_HP',
-                      'PLAYER_BLOCK',
-                      'MONSTER_HP', 'MONSTER_ATTACK', 'MONSTER_BLOCK',
-                      'MONSTER_VULNERABLE',
-                      'HAND_STRIKES',
-                      'HAND_BASHES',
-                      ]
+        cont_names = aidata.CONT_DATA.split(',')
         dep_var = 'FINAL_HP_DELTA'
         dep_var = 'FINAL_HP_NEGATIVE'
         to = TabularPandas(df,

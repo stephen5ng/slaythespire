@@ -9,10 +9,10 @@ from csv_logger import CsvLogger
 import fastai_sts
 import numpy
 import random
+import aidata
 
 logger = logging.getLogger("turns").getChild(__name__)
-csv_logger = CsvLogger(
-                "FINAL_HP,GAME,N_TURN,N_PLAY,ENERGY,PLAY,PLAYER_HP,PLAYER_BLOCK,MONSTER_HP,MONSTER_ATTACK,MONSTER_BLOCK,MONSTER_VULNERABLE,HAND_STRIKES,HAND_BASHES")
+csv_logger = CsvLogger("FINAL_HP,GAME,N_TURN,N_PLAY,PLAY," + aidata.CONT_DATA)
 
 
 class Player(Character):
@@ -80,7 +80,7 @@ class Player(Character):
             logger.debug(f"playing card: {card_to_play}")
             # print(f"{self.deck.hand}: {self.deck.hand.count(Card.STRIKE)}")
             csv_logger.play_card(
-                (energy, card_to_play.name, self.hp, self.block,
+                (card_to_play.name, energy, self.hp, self.block,
                  monster.hp, monster.attack(), monster.block, monster.get_vulnerable(),
                  self.deck.hand.count(Card.STRIKE), self.deck.hand.count(Card.BASH)))
 
