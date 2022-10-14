@@ -151,7 +151,7 @@ def predict(data, m):
     cats = to.procs.categorify.classes['PLAY']
 
     # data["PLAY"] = [cats.o2i[x.name] for x in data["PLAY"]]
-    data["PLAY"] = [cats.o2i[x.name] for x in data["PLAY"]]
+    data["PLAY"] = [cats.o2i[x] for x in data["PLAY"]]
     test_data = pd.DataFrame(data)
     logger.debug(f"data: \n{test_data}")
     p = m.predict(test_data)

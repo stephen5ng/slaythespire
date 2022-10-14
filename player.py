@@ -14,6 +14,7 @@ import aidata
 logger = logging.getLogger("turns").getChild(__name__)
 csv_logger = CsvLogger("FINAL_HP,GAME,N_TURN,N_PLAY,PLAY," + aidata.CONT_DATA)
 
+HAND_CARDS = [Card.STRIKE, Card.BASH, Card.DEFEND]
 
 class Player(Character):
 
@@ -181,9 +182,8 @@ class AIPlayer(Player):
         uniq_cards = set(card for card in self.deck.hand if card.energy <= energy)
         if not uniq_cards:
             return None
-        
-        ps = fastai_sts.predict({
-            "PLAY": uniq_cards,
+        data = {
+            "PLAY": [c.name for c in uniq_cards],
             "ENERGY": energy,
             "PLAYER_HP": self.hp,
             "PLAYER_BLOCK": self.block,
@@ -191,9 +191,12 @@ class AIPlayer(Player):
             "MONSTER_ATTACK": monster.attack(),
             "MONSTER_BLOCK": monster.block,
             "MONSTER_VULNERABLE": monster.get_vulnerable(),
-            "HAND_STRIKES": self.deck.hand.count(Card.STRIKE),
-            "HAND_BASHES": self.deck.hand.count(Card.BASH),
-        }, self._m)
+        }
+        hand_dict = { k:v for (k, v) in [(f"HAND_{c.name}", self.deck.hand.count(c)) for c in HAND_CARDS]}
+        data.update(hand_dict)
+        logger.debug(f"data {data}")
+        
+        ps = fastai_sts.predict(data, self._m)
         best_cards = [x[1] for x in zip(ps, uniq_cards) if x[0] == min(ps)]
         best_card = random.choice(list(best_cards))
         logger.debug(f"best_card --> {list(zip(ps, uniq_cards))} --> {list(best_cards)} --> {best_card}")

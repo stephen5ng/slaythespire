@@ -1,6 +1,6 @@
 #!/bin/bash -e
 TRIALS=200
-TIME_SECONDS=600
+TIME_SECONDS=300
 
 rm -f training.log
 rm -f sts.csv
