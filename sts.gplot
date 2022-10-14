@@ -2,4 +2,9 @@ set timefmt "%H:%M:%S"
 set xdata time
 set term png
 set output "gnuplot.png"
-plot "training.log" using 1:2
+
+f(x) = a * x + b
+fit f(x) "training.log" using 1:2 via a,b
+
+plot 'training.log' u 1:2 lt 1 pt 7 title 'avg final hp',\
+     f(x) w l lt 1 title 'fit'
